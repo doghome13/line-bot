@@ -43,4 +43,8 @@ return [
         'token' => env('TELEGRAM_BOT_TOKEN'),
         'chat_id' => env('TELEGRAM_CHAT_ID'),
     ],
+    'line-bot' => [
+        'token' => env('LINE_BOT_CHANNEL_ACCESS_TOKEN'),
+        'secret' => env('LINE_BOT_CHANNEL_SECRET'),
+    ],
 ];
