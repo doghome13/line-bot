@@ -13,14 +13,17 @@ class LineBot extends Command
      *
      * @var string
      */
-    protected $signature = 'line:bot';
+    protected $signature = 'line:bot:reply
+            {replyToken : Reply token received via webhook.}
+            {replyMsg : Messages to send.}
+        ';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'LINE 聊天機器人';
+    protected $description = 'LINE 聊天機器人 - 回覆訊息';
 
     /**
      * Create a new command instance.
@@ -31,7 +34,7 @@ class LineBot extends Command
     {
         parent::__construct();
 
-        $this->bot = (new LineBotService())->bot;
+        // $this->bot = (new LineBotService())->getBot();
     }
 
     /**
@@ -42,31 +45,31 @@ class LineBot extends Command
     public function handle()
     {
         try {
-            $textMessageBuilder = new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('hello');
-            $response = $this->bot->replyMessage(config('services.line-bot.token'), $textMessageBuilder);
-            if ($response->isSucceeded()) {
-                echo 'Succeeded!';
-                return;
-            }
+            // $textMessageBuilder = new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('hello');
+            // $response           = $this->bot->replyMessage(config('services.line-bot.token'), $textMessageBuilder);
+            // if ($response->isSucceeded()) {
+            //     echo 'Succeeded!';
+            //     return;
+            // }
 
-            // Failed
-            echo $response->getHTTPStatus() . ' ' . $response->getRawBody();
+            // // Failed
+            // echo $response->getHTTPStatus() . ' ' . $response->getRawBody();
 
+            $url  = 'https://api.line.me/v2/bot/message/reply';
+            $data = [
+                'replyToken' => $this->argument('replyToken'),
+                'messages'   => $this->argument('replyMsg'),
+                // 'notificationDisabled' => false,
+            ];
+            $data = http_build_query($data);
+            $this->curl($url, $data);
         } catch (Exception $e) {
-            $this->error('LINE: ' . $e->getLine());
-            $this->error('MSG:' . $e->getMessage());
+            // $this->error('LINE: ' . $e->getLine());
+            // $this->error('MSG:' . $e->getMessage());
+            throw new Exception($e->getMessage());
         }
 
-        $this->line('done!');
-    }
-
-    /**
-     * send push message
-     */
-    private function sendMessage()
-    {
-        $url = 'https://api.line.me/v2/bot/message/push';
-        $this->curl($url, 'hello!');
+        // $this->line('done!');
     }
 
     /**
@@ -87,17 +90,13 @@ class LineBot extends Command
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeader);
-
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER  , false);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+        curl_setopt($ch, CURLOPT_POST, true);
 
-        if ($isPost === true) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-            curl_setopt($ch, CURLOPT_POST, true);
-        }
-
-        $result = curl_exec($ch);
-        $result = json_decode($result) ?? null;
+        $result      = curl_exec($ch);
+        $result      = json_decode($result) ?? null;
         $reponseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 

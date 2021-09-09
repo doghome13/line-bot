@@ -20,5 +20,5 @@ use Illuminate\Http\Request;
 Route::prefix('/line-bot')
     ->namespace('LineBot')
     ->group(function () {
-        Route::post('/echo', 'LineBotController@echo');
+        Route::post('/echo', 'LineBotController@callback');
     });
