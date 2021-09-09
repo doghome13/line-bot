@@ -19,16 +19,12 @@ class LineBotController extends Controller
     {
         // /dev/logs 觀測結果
         try {
-            $log = new DevLogs();
-            $log->msg = $request->all();
-            $log->save();
+            set_log($request->all());
 
             return 'OK';
         } catch (Exception $e) {
-            $log = new DevLogs();
-            $log->code = $e->getCode();
-            $log->msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
-            $log->save();
+            $msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
+            set_log($msg, $e->getCode());
 
             return $e->getMessage();
         }
@@ -46,10 +42,8 @@ class LineBotController extends Controller
 
             return 'OK';
         } catch (Exception $e) {
-            $log = new DevLogs();
-            $log->code = $e->getCode();
-            $log->msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
-            $log->save();
+            $msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
+            set_log($msg, $e->getCode());
 
             return $e->getMessage();
         }

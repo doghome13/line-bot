@@ -28,16 +28,16 @@ class LineBotService
      *
      * @return LINEBot
      */
-    public function getBot()
+    public static function getBot()
     {
-        $httpClient = new CurlHTTPClient(config('service.line-bot.token'));
-        return new LINEBot($httpClient, ['channelSecret' => config('service.line-bot.secret')]);
+        $httpClient = new CurlHTTPClient(config('services.linebot.token'));
+        return new LINEBot($httpClient, ['channelSecret' => config('services.linebot.secret')]);
     }
 
     public function run()
     {
         foreach ($this->events as $event) {
-            $type = $event->type ?? '';
+            $type = $event['type'] ?? '';
 
             switch ($type) {
                 case static::EVENT_MESSAGE:
@@ -58,15 +58,17 @@ class LineBotService
      */
     private function eventMessage($event)
     {
+        $message = $event['message'];
+
         // 目前只處理文字
-        if ($event->message->type != static::MSG_TYPE_TEXT) {
+        if ($message['type'] != static::MSG_TYPE_TEXT) {
             return;
         }
 
         // 會得到 replyToken, message
         $options = [
-            'replyToken' => $event->replyToken,
-            'replyMsg'   => $event->message->text . " 啾咪",
+            'replyToken' => $event['replyToken'],
+            'replyMsg'   => $message['text'] . " 喵喵喵",
         ];
         Artisan::call('line:bot:reply', $options);
     }
