@@ -126,14 +126,16 @@ class LineBotReply extends Command
      */
     private function randomMsg()
     {
-        $count = rand(1, 5);
-        $msg = [
-            rand(0, 9) == 1 ? '老子累了' : $this->argument('replyMsg'),
+        $randCount = mt_rand(1, 5);
+        $randMsg   = mt_rand(1, 10);
+        $msg       = [
+            $randMsg == 1 ? '老子累了' : $this->argument('replyMsg'),
             ' ',
         ];
-        while ($count) {
+
+        while ($randCount) {
             $msg[] = '喵';
-            $count--;
+            $randCount--;
         }
 
         return implode('', $msg);
