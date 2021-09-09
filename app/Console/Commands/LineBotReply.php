@@ -46,7 +46,7 @@ class LineBotReply extends Command
         try {
             // 套用 LINE API SDK
             $bot                = LineBotService::getBot();
-            $textMessageBuilder = new TextMessageBuilder($this->argument('replyMsg'));
+            $textMessageBuilder = new TextMessageBuilder($this->randomMsg());
             $response           = $bot->replyMessage($this->argument('replyToken'), $textMessageBuilder);
 
             if ($response->isSucceeded()) {
@@ -118,4 +118,24 @@ class LineBotReply extends Command
 
     //     return $result;
     // }
+
+    /**
+     * 隨機回覆
+     *
+     * @return string
+     */
+    private function randomMsg()
+    {
+        $count = rand(1, 5);
+        $msg = [
+            rand(0, 9) == 1 ? '老子累了' : $this->argument('replyMsg'),
+            ' ',
+        ];
+        while ($count) {
+            $msg[] = '喵';
+            $count--;
+        }
+
+        return implode('', $msg);
+    }
 }

@@ -68,7 +68,7 @@ class LineBotService
         // 會得到 replyToken, message
         $options = [
             'replyToken' => $event['replyToken'],
-            'replyMsg'   => $message['text'] . " 喵喵喵",
+            'replyMsg'   => $message['text'],
         ];
         Artisan::call('line:bot:reply', $options);
     }
