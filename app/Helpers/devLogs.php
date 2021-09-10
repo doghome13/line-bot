@@ -4,10 +4,7 @@ if (!function_exists('set_log')) {
     function set_log($content, $code = null)
     {
         try {
-            $log = new \App\Models\DevLogs();
-            $log->code = $code;
-            $log->msg = $content;
-            $log->save();
+            (new \App\Services\Dev\LogService())::add($content, $code);
 
             return 'OK';
         } catch (\Exception $e) {
