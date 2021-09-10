@@ -2,14 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DevLogs;
 use App\Http\Controllers\Controller;
+use App\Models\DevLogs;
+use App\Models\LogException;
+use App\Services\Dev\LogService;
 
 class DevController extends Controller
 {
-    public function listOfLogs()
+    public function listOfLogs($type = null)
     {
-        $logs = DevLogs::orderBy('created_at', 'desc')->get();
+        if ($type == null) {
+            $logs = DevLogs::orderBy('created_at', 'desc')->get();
+        } else if ($type == LogService::LOG_TYPE_EXCEPTION) {
+            $logs = LogException::orderBy('created_at', 'desc')->get();
+        } else {
+            return;
+        }
+
         $count = 1;
 
         if ($logs->count() == 0) {
@@ -27,8 +36,25 @@ class DevController extends Controller
             echo "<br/>";
             echo "CODE: {$log->code}";
             echo "<br/>";
-            print_r($log->msg);
+
+            if ($type == LogService::LOG_TYPE_EXCEPTION) {
+                echo "CLASS: {$log->class_name}";
+                echo "<br/>";
+                echo "FILE: {$log->file}";
+                echo "<br/>";
+                echo "LINE: {$log->line}";
+                echo "<br/>";
+                echo "URL: {$log->url}";
+                echo "<br/>";
+                echo "IP: {$log->ip}";
+                echo "<br/>";
+                echo "MSG: {$log->message}";
+                echo "<br/>";
+            } else {
+                print_r($log->msg);
+            }
             echo "</pre>";
+
             $count++;
         }
     }

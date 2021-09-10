@@ -15,4 +15,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dev/logs', 'DevController@listOfLogs');
+Route::get('/dev/logs/{type?}', 'DevController@listOfLogs');

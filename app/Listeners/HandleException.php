@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\ThrowException;
 use App\Models\LogException;
+use App\Services\Dev\LogService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -37,15 +38,8 @@ class HandleException
         } elseif (is_a($exception, MethodNotAllowedHttpException::class)) {
             $message    = 'Method Not Allowed';
         }
+        $message = $message ?: 'unknown error';
 
-        $log             = new LogException();
-        $log->code       = $exception->getCode();
-        $log->class_name = get_class($exception);
-        $log->file       = $exception->getFile();
-        $log->line       = $exception->getLine();
-        $log->url        = request()->url();
-        $log->message    = $message ?: 'unknown error';
-        $log->ip         = request()->ip();
-        $log->save();
+        (new LogService(LogService::LOG_TYPE_EXCEPTION))->add($message, null, $exception);
     }
 }
