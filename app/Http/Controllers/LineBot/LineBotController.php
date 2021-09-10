@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\LineBot;
 
-use App\Models\DevLogs;
+use App\Events\ThrowException;
 use App\Http\Controllers\Controller;
 use App\Services\LineBot\LineBotService;
 use Exception;
@@ -15,15 +15,14 @@ class LineBotController extends Controller
      *
      * @return string
      */
-    public function echo(Request $request)
-    {
+    function echo (Request $request) {
         // /dev/logs 觀測結果
         try {
             set_log($request->all());
 
             return 'OK';
         } catch (Exception $e) {
-            $msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
+            $msg = "LINE: " . $e->getLine() . ", MSG: " . $e->getMessage();
             set_log($msg, $e->getCode());
 
             return $e->getMessage();
@@ -42,10 +41,8 @@ class LineBotController extends Controller
 
             return 'OK';
         } catch (Exception $e) {
-            $msg = "LINE: ".$e->getLine().", MSG: ".$e->getMessage();
-            set_log($msg, $e->getCode());
-
-            return $e->getMessage();
+            event(new ThrowException($e));
+            return 'ERROR';
         }
     }
 }

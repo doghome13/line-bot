@@ -2,6 +2,7 @@
 
 namespace App\Services\LineBot;
 
+use App\Models\GroupConfig;
 use Artisan;
 use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
@@ -10,6 +11,8 @@ class LineBotService
 {
     const EVENT_MESSAGE       = 'message';
     const EVENT_MEMBER_JOINED = 'memberJoined';
+
+    const SOURCE_TYPE_GROUP = 'group';
 
     /**
      * 訊息類型-文字
@@ -70,6 +73,48 @@ class LineBotService
             'replyToken' => $event['replyToken'],
             'replyMsg'   => $message['text'],
         ];
+        $findGroup = $this->groupConfig($event) ?? null;
+
+        // 群組事件
+        if ($findGroup != null) {
+            if ($message['text'] == config('services.linebot.silent_off')
+                && $findGroup->silent_mode) {
+                // 靜音 OFF
+                $findGroup->switchSilent();
+            } else if ($message['text'] == config('services.linebot.silent_on')
+            && !$findGroup->silent_mode) {
+                // 靜音 ON
+                $findGroup->switchSilent();
+            } else if ($findGroup->silent_mode) {
+                return;
+            }
+        }
+
         Artisan::call('line:bot:reply', $options);
+    }
+
+    /**
+     * 群組設定
+     *
+     * @param mixed $event
+     * @return GroupConfig|null
+     */
+    private function groupConfig($event)
+    {
+        $source = $event['source'] ?? false;
+
+        if (!$source || $source['type'] != static::SOURCE_TYPE_GROUP) {
+            return null;
+        }
+
+        $find = GroupConfig::where('group_id', $source['userId'])->frist();
+
+        if ($find == null) {
+            $find = new GroupConfig();
+            $find->group_id = $source['userId'];
+            $find->save();
+        }
+
+        return $find;
     }
 }
