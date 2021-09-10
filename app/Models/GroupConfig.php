@@ -20,7 +20,7 @@ class GroupConfig extends Model
     /**
      * 靜音模式 on/off
      */
-    public function scopeSwitchSilent()
+    public function switchSilent()
     {
         $this->silent_mode = !$this->silent_mode;
         $this->save();

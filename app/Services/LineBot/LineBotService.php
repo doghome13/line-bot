@@ -107,7 +107,7 @@ class LineBotService
             return null;
         }
 
-        $find = GroupConfig::where('group_id', $source['userId'])->frist();
+        $find = GroupConfig::where('group_id', $source['userId'])->first();
 
         if ($find == null) {
             $find = new GroupConfig();
