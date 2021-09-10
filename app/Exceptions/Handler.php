@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Events\ThrowException;
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 
@@ -46,6 +47,12 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        try {
+            event(new ThrowException($exception));
+        } catch (Exception $err) {
+            return parent::render($request, $exception);
+        }
+
         return parent::render($request, $exception);
     }
 }
