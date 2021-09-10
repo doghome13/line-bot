@@ -81,10 +81,12 @@ class LineBotService
                 && $findGroup->silent_mode) {
                 // 靜音 OFF
                 $findGroup->switchSilent();
+                $options['--silent-off'] = true;
             } else if ($message['text'] == config('services.linebot.silent_on')
             && !$findGroup->silent_mode) {
                 // 靜音 ON
                 $findGroup->switchSilent();
+                $options['--silent-on'] = true;
             } else if ($findGroup->silent_mode) {
                 return;
             }
