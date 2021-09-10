@@ -1,6 +1,9 @@
 # line-bot
-聊天機器人\
-測試帳號 (LINE ID) @797ojgzl
+聊天機器人
+
+測試帳號\
+LINE ID `@797ojgzl`\
+LINE LINK [https://liff.line.me/1645...](https://liff.line.me/1645278921-kWRPP32q?accountId=797ojgzl&openerPlatform=native&openerKey=unifiedSearch#mst_challenge=N7skpf0WNa4xY7WMBZH_J66XPHIzvZNyAvh5UuZmDOU)
 
 # 功能
 * 自動回覆 - 重複使用者輸入的話
