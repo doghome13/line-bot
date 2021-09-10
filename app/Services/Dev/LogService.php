@@ -98,6 +98,6 @@ class LogService
      */
     private function query()
     {
-        return $this->logType ? DevLogs::query() : LogException::query();
+        return $this->logType == static::LOG_TYPE_DEV ? DevLogs::query() : LogException::query();
     }
 }

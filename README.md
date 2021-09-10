@@ -7,6 +7,7 @@ LINE LINK [https://liff.line.me/1645...](https://liff.line.me/1645278921-kWRPP32
 
 # 功能
 * 自動回覆 - 重複使用者輸入的話
+* 靜音模式的切換 - (預設輸入) ON: `silent` / OFF: `speak`
 * 開發 LOG - [/dev/logs](https://takolinebot.herokuapp.com/dev/logs)
 * 例外訊息 LOG - [/dev/logs/exception](https://takolinebot.herokuapp.com/dev/logs/exception)
 # 開發事項

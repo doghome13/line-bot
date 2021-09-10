@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\LineBot\LineBotService;
 use Exception;
 use Illuminate\Console\Command;
+use LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 
 class LineBotReply extends Command
@@ -17,6 +18,8 @@ class LineBotReply extends Command
     protected $signature = 'line:bot:reply
                             {replyToken : Reply token received via webhook.}
                             {replyMsg : Messages to send.}
+                            {--silent-on}
+                            {--silent-off}
                             ';
 
     /**
@@ -45,9 +48,18 @@ class LineBotReply extends Command
     {
         try {
             // 套用 LINE API SDK
-            $bot                = LineBotService::getBot();
-            $textMessageBuilder = new TextMessageBuilder($this->randomMsg());
-            $response           = $bot->replyMessage($this->argument('replyToken'), $textMessageBuilder);
+            $bot = LineBotService::getBot();
+
+            // 對於靜音模式，回應貼圖
+            if ($this->option('silent-on') || $this->option('silent-off')) {
+                $packageId = 6632;
+                $stickerId = $this->option('silent-on') ? 11825375 : 11825376;
+                $textMessageBuilder = new StickerMessageBuilder($packageId, $stickerId);
+            } else {
+                $textMessageBuilder = new TextMessageBuilder($this->randomMsg());
+            }
+
+            $response = $bot->replyMessage($this->argument('replyToken'), $textMessageBuilder);
 
             if ($response->isSucceeded()) {
                 echo 'done!';
