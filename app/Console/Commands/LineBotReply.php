@@ -83,6 +83,7 @@ class LineBotReply extends Command
         } catch (Exception $e) {
             // $this->error('LINE: ' . $e->getLine());
             // $this->error('MSG:' . $e->getMessage());
+            event(new ThrowException($e));
         }
 
         // $this->line('done!');

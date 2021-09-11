@@ -46,7 +46,5 @@ return [
     'linebot' => [
         'token' => env('LINE_BOT_CHANNEL_ACCESS_TOKEN'),
         'secret' => env('LINE_BOT_CHANNEL_SECRET'),
-        'silent_on' => env('LINE_BOT_SILENT_ON', 'silent'),
-        'silent_off' => env('LINE_BOT_SILENT_OFF', 'speak'),
     ],
 ];

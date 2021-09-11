@@ -49,8 +49,8 @@ class LineBotService
                     $this->eventMessage($event);
                     break;
 
-                // 加入群組
                 case static::EVENT_JOIN:
+                    // 加入群組
                     $options = [
                         'groupId'    => $event['source']['groupId'],
                         'replyToken' => $event['replyToken'],
@@ -136,8 +136,8 @@ class LineBotService
 
         // 來自群組的訊息
         if ($source != null && $source['type'] == static::SOURCE_TYPE_GROUP) {
-            $groupService = new LineGroupService($event, $options);
-            $options      = $groupService->checkSilentMode($message['text'])->options;
+            $groupService = new LineGroupService($event, $message['text'], $options);
+            $options = $groupService->run()->options;
 
             // 表示有條件未符合、靜音模式
             if ($options == null) {

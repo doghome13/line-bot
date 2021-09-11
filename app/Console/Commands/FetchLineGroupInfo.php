@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Events\ThrowException;
 use App\Services\LineBot\LineBotService;
 use App\Services\LineBot\LineGroupService;
 use Exception;
@@ -17,6 +18,7 @@ class FetchLineGroupInfo extends Command
     protected $signature = 'line:group:info
                             {groupId : 群組 id}
                             {replyToken? : 回覆需要帶 token}
+                            {msg? : 自訂回覆的訊息}
                             ';
 
     /**
@@ -52,15 +54,15 @@ class FetchLineGroupInfo extends Command
 
             // 更新資訊
             $groupConfig              = LineGroupService::groupConfig($groupId);
-            $groupConfig->name        = $res->name;
+            $groupConfig->name        = $res->groupName;
             $groupConfig->picture_url = $res->pictureUrl;
-            $groupConfig->silent_mode = true;
+            $groupConfig->silent_mode = false;
             $groupConfig->save();
 
             if ($token != '') {
                 $options = [
                     'replyToken'    => $token,
-                    'replyMsg'      => '朕來了',
+                    'replyMsg'      => $this->argument('msg') ?? '朕來了',
                     '--no-specific' => true,
                 ];
                 $this->call('line:bot:reply', $options);
@@ -69,11 +71,12 @@ class FetchLineGroupInfo extends Command
             if ($token != '') {
                 $options = [
                     'replyToken'    => $token,
-                    'replyMsg'      => '更新群組資料失敗',
+                    'replyMsg'      => '找不到資料，這穴壞了',
                     '--no-specific' => true,
                 ];
                 $this->call('line:bot:reply', $options);
             }
+            event(new ThrowException($e));
         }
     }
 }
