@@ -132,10 +132,9 @@ class LineBotService
             'replyToken' => $event['replyToken'],
             'replyMsg'   => $message['text'],
         ];
-        $source = $event['source'] ?? null;
 
         // 來自群組的訊息
-        if ($source != null && $source['type'] == static::SOURCE_TYPE_GROUP) {
+        if ($event['source']['type'] == static::SOURCE_TYPE_GROUP) {
             $groupService = new LineGroupService($event, $message['text'], $options);
             $options = $groupService->run()->options;
 

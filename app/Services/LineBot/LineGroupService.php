@@ -2,8 +2,11 @@
 
 namespace App\Services\LineBot;
 
+use App\Events\ThrowException;
+use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
 use Artisan;
+use Carbon\Carbon;
 use Exception;
 
 class LineGroupService
@@ -56,7 +59,12 @@ class LineGroupService
                     'msg'        => '好的',
                 ];
                 Artisan::call('line:group:info', $options);
-                $this->break();
+                $this->stopMsg();
+                break;
+
+            case config('linebot.claim_group_admin'):
+                // 註冊群組的管理者
+                $this->registerAdmin();
                 break;
 
             default:
@@ -66,6 +74,40 @@ class LineGroupService
         }
 
         return $this;
+    }
+
+    /**
+     * 群組設定
+     *
+     * @return GroupConfig
+     */
+    public static function groupConfig($groupId)
+    {
+        $find = GroupConfig::where('group_id', $groupId)->first();
+
+        if ($find == null) {
+            $find           = new GroupConfig();
+            $find->group_id = $groupId;
+            $find->save();
+        }
+
+        return $find;
+    }
+
+    /**
+     * 該群組的管理員
+     *
+     * @param string $groupId // 群組 id
+     * @return GroupAdmin|null
+     */
+    public static function groupAdmin(string $groupId)
+    {
+        return GroupAdmin::where('group_id', function ($sub) use ($groupId) {
+            return $sub->select('id')
+                ->from('group_config')
+                ->where('group_id', $groupId);
+        })
+            ->first();
     }
 
     /**
@@ -94,30 +136,51 @@ class LineGroupService
     }
 
     /**
-     * 群組設定
-     *
-     * @return GroupConfig
-     */
-    public static function groupConfig($groupId)
-    {
-        $find = GroupConfig::where('group_id', $groupId)->first();
-
-        if ($find == null) {
-            $find           = new GroupConfig();
-            $find->group_id = $groupId;
-            $find->save();
-        }
-
-        return $find;
-    }
-
-    /**
      * 強制不再傳其他訊息
      *
      * @return void
      */
-    private function break()
+    private function stopMsg()
     {
         $this->options = null;
+    }
+
+    /**
+     * 註冊群組管理者
+     *
+     * @return void
+     */
+    private function registerAdmin()
+    {
+        try {
+            $this->options['--no-specific'] = true;
+            $userId                         = $this->event['source']['userId'];
+            $admin                          = $this->groupAdmin($this->groupId);
+
+            // 註冊
+            if ($admin == null) {
+                $group             = $this->groupConfig($this->groupId);
+                $find              = new GroupAdmin();
+                $find->user_id     = $userId;
+                $find->group_id    = $group->id;
+                $find->is_sidekick = false;
+                $find->applied_at  = Carbon::now();
+                $find->save();
+
+                $this->options['replyMsg'] = '主人~';
+                return;
+            }
+
+            if ($admin != null && $admin->user_id != $userId) {
+                $this->options['replyMsg'] = '朕 心有所屬，退下吧';
+                return;
+            }
+
+            // 已是管理者
+            $this->options['replyMsg'] = '別來調戲朕';
+        } catch (Exception $e) {
+            $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
+            event(new ThrowException($e));
+        }
     }
 }

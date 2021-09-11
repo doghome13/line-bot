@@ -13,7 +13,7 @@ class GroupAdmin extends Model
 
     protected $casts = [
         'group_id'    => 'integer',
-        'user_id'     => 'integer',
+        'user_id'     => 'string',
         'is_sidekick' => 'boolean',
         'applied_at'  => 'datetime:Y-m-d H:i:s',
     ];
