@@ -3,13 +3,16 @@
 namespace App\Services\LineBot;
 
 use Artisan;
+use Exception;
 use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 
 class LineBotService
 {
+    // type of webhook event
     const EVENT_MESSAGE       = 'message';
     const EVENT_MEMBER_JOINED = 'memberJoined';
+    const EVENT_JOIN          = 'join';
 
     const SOURCE_TYPE_GROUP = 'group';
 
@@ -46,11 +49,68 @@ class LineBotService
                     $this->eventMessage($event);
                     break;
 
+                // 加入群組
+                case static::EVENT_JOIN:
+                    $options = [
+                        'groupId'    => $event['source']['groupId'],
+                        'replyToken' => $event['replyToken'],
+                    ];
+                    Artisan::call('line:group:info', $options);
+                    break;
+
                 default:
                     # code...
                     break;
             }
         }
+    }
+
+    /**
+     * build curl
+     *
+     * @param string $url // api path
+     * @param mixed $content
+     * @param bool $isPost // api method
+     * @param string $class
+     * @return object
+     */
+    public static function curl(string $url, $content, $isPost = true, $className = '')
+    {
+        $curlHeader = [
+            'Content-Type:application/json',
+            'Authorization: Bearer ' . config('services.linebot.token'),
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeader);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+
+        if ($isPost) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+            curl_setopt($ch, CURLOPT_POST, true);
+        }
+
+        $result      = curl_exec($ch);
+        $response    = json_decode($result) ?? null;
+        $reponseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        // 報錯則不處理
+        if ($response === null || $reponseCode !== 200) {
+            $errormsg = [
+                'curl error: ' . $reponseCode,
+                'class: ' . $className,
+                'api: ' . $url,
+                'msg: ' . ($response ? $response->message : ''),
+                'content: ' . json_encode($content),
+                'result: ' . $result ?? 'null',
+            ];
+            throw new Exception(implode(', ', $errormsg));
+        }
+
+        return $response;
     }
 
     /**

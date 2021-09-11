@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Events\ThrowException;
 use App\Services\LineBot\LineBotService;
 use Exception;
 use Illuminate\Console\Command;
@@ -20,6 +21,7 @@ class LineBotReply extends Command
                             {replyMsg : Messages to send.}
                             {--silent-on}
                             {--silent-off}
+                            {--no-specific : 不使用特定字句}
                             ';
 
     /**
@@ -81,7 +83,6 @@ class LineBotReply extends Command
         } catch (Exception $e) {
             // $this->error('LINE: ' . $e->getLine());
             // $this->error('MSG:' . $e->getMessage());
-            throw new Exception($e->getMessage());
         }
 
         // $this->line('done!');
@@ -141,7 +142,7 @@ class LineBotReply extends Command
         $randCount = mt_rand(1, 5);
         $randMsg   = mt_rand(1, 10);
         $msg       = [
-            $randMsg == 1 ? '老子累了' : $this->argument('replyMsg'),
+            ($randMsg == 1 && !$this->option('no-specific')) ? '老子累了' : $this->argument('replyMsg'),
             ' ',
         ];
 

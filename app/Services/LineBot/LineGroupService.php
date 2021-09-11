@@ -44,7 +44,7 @@ class LineGroupService
     {
         $silentOn  = config('services.linebot.silent_on');
         $silentOff = config('services.linebot.silent_off');
-        $config    = $this->groupConfig();
+        $config    = $this->groupConfig($this->groupId);
 
         if ($text == $silentOff && $config->silent_mode) {
             // 靜音 OFF
@@ -66,13 +66,13 @@ class LineGroupService
      *
      * @return GroupConfig
      */
-    private function groupConfig()
+    public static function groupConfig($groupId)
     {
-        $find = GroupConfig::where('group_id', $this->groupId)->first();
+        $find = GroupConfig::where('group_id', $groupId)->first();
 
         if ($find == null) {
             $find           = new GroupConfig();
-            $find->group_id = $this->groupId;
+            $find->group_id = $groupId;
             $find->save();
         }
 
