@@ -9,10 +9,11 @@ class GroupConfig extends Model
     protected $table = 'group_config';
 
     protected $casts = [
-        'group_id'    => 'string',
-        'silent_mode' => 'boolean',
-        'created_at'  => 'datetime:Y-m-d H:i:s',
-        'updated_at'  => 'datetime:Y-m-d H:i:s',
+        'group_id'      => 'string',
+        'need_sidekick' => 'boolean',
+        'silent_mode'   => 'boolean',
+        'created_at'    => 'datetime:Y-m-d H:i:s',
+        'updated_at'    => 'datetime:Y-m-d H:i:s',
     ];
 
     protected $hidden = ['id'];
