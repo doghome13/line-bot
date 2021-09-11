@@ -2,7 +2,6 @@
 
 namespace App\Services\LineBot;
 
-use App\Models\GroupConfig;
 use Artisan;
 use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
@@ -73,50 +72,19 @@ class LineBotService
             'replyToken' => $event['replyToken'],
             'replyMsg'   => $message['text'],
         ];
-        $findGroup = $this->groupConfig($event) ?? null;
+        $source = $event['source'] ?? null;
 
-        // 群組事件
-        if ($findGroup != null) {
-            if ($message['text'] == config('services.linebot.silent_off')
-                && $findGroup->silent_mode) {
-                // 靜音 OFF
-                $findGroup->switchSilent();
-                $options['--silent-off'] = true;
-            } else if ($message['text'] == config('services.linebot.silent_on')
-            && !$findGroup->silent_mode) {
-                // 靜音 ON
-                $findGroup->switchSilent();
-                $options['--silent-on'] = true;
-            } else if ($findGroup->silent_mode) {
+        // 來自群組的訊息
+        if ($source != null && $source['type'] == static::SOURCE_TYPE_GROUP) {
+            $groupService = new LineGroupService($event, $options);
+            $options      = $groupService->checkSilentMode($message['text'])->options;
+
+            // 表示有條件未符合、靜音模式
+            if ($options == null) {
                 return;
             }
         }
 
         Artisan::call('line:bot:reply', $options);
-    }
-
-    /**
-     * 群組設定
-     *
-     * @param mixed $event
-     * @return GroupConfig|null
-     */
-    private function groupConfig($event)
-    {
-        $source = $event['source'] ?? false;
-
-        if (!$source || $source['type'] != static::SOURCE_TYPE_GROUP) {
-            return null;
-        }
-
-        $find = GroupConfig::where('group_id', $source['groupId'])->first();
-
-        if ($find == null) {
-            $find = new GroupConfig();
-            $find->group_id = $source['groupId'];
-            $find->save();
-        }
-
-        return $find;
     }
 }
