@@ -109,11 +109,11 @@ class LineBotService
             return null;
         }
 
-        $find = GroupConfig::where('group_id', $source['userId'])->first();
+        $find = GroupConfig::where('group_id', $source['groupId'])->first();
 
         if ($find == null) {
             $find = new GroupConfig();
-            $find->group_id = $source['userId'];
+            $find->group_id = $source['groupId'];
             $find->save();
         }
 
