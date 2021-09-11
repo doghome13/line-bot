@@ -111,6 +111,42 @@ class LineGroupService
     }
 
     /**
+     * 移除管理者
+     * 當會員離開群組，需自動刪除
+     *
+     * @return void
+     */
+    public function removeAdmin()
+    {
+        try {
+            $this->stopMsg();
+
+            $admin   = $this->groupAdmin($this->groupId);
+            $group   = $this->groupConfig($this->groupId);
+            $members = $this->event['left']['members'];
+            $userIds = [];
+
+            foreach ($members as $member) {
+                $userIds[] = $member['userId'];
+            }
+
+            // 若管理員離開，則該群組所有小幫手也失去資格
+            if (in_array($admin->user_id, $userIds)) {
+                GroupAdmin::where('group_id', $group->id)->delete();
+
+                return;
+            }
+
+            // 小幫手離開群組
+            GroupAdmin::whereIn('user_id', $userIds)
+                ->where('group_id', $group->id)
+                ->delete();
+        } catch (Exception $e) {
+            event(new ThrowException($e));
+        }
+    }
+
+    /**
      * 驗證靜音模式
      * 目前只支援文字訊息的觸發
      *

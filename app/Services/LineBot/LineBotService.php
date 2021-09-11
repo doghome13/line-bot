@@ -12,7 +12,8 @@ class LineBotService
     // type of webhook event
     const EVENT_MESSAGE       = 'message';
     const EVENT_MEMBER_JOINED = 'memberJoined';
-    const EVENT_JOIN          = 'join';
+    const EVENT_MEMBER_LEFT   = 'memberLeft';
+    const EVENT_JOIN          = 'join'; // bot 加入群組
 
     const SOURCE_TYPE_GROUP = 'group';
 
@@ -56,6 +57,11 @@ class LineBotService
                         'replyToken' => $event['replyToken'],
                     ];
                     Artisan::call('line:group:info', $options);
+                    break;
+
+                case static::EVENT_MEMBER_LEFT:
+                    // 會員離開群組
+                    (new LineGroupService($event))->removeAdmin();
                     break;
 
                 default:
@@ -136,7 +142,7 @@ class LineBotService
         // 來自群組的訊息
         if ($event['source']['type'] == static::SOURCE_TYPE_GROUP) {
             $groupService = new LineGroupService($event, $message['text'], $options);
-            $options = $groupService->run()->options;
+            $options      = $groupService->run()->options;
 
             // 表示有條件未符合、靜音模式
             if ($options == null) {
