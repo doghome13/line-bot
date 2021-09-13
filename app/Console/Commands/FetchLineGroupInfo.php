@@ -56,7 +56,6 @@ class FetchLineGroupInfo extends Command
             $groupConfig              = LineGroupService::groupConfig($groupId);
             $groupConfig->name        = $res->groupName;
             $groupConfig->picture_url = $res->pictureUrl;
-            $groupConfig->silent_mode = false;
             $groupConfig->save();
 
             if ($token != '') {

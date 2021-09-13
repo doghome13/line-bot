@@ -119,8 +119,6 @@ class LineGroupService
     public function removeAdmin()
     {
         try {
-            $this->stopMsg();
-
             $admin   = $this->groupAdmin($this->groupId);
             $group   = $this->groupConfig($this->groupId);
             $members = $this->event['left']['members'];
@@ -131,7 +129,7 @@ class LineGroupService
             }
 
             // 若管理員離開，則該群組所有小幫手也失去資格
-            if (in_array($admin->user_id, $userIds)) {
+            if ($admin != null && in_array($admin->user_id, $userIds)) {
                 GroupAdmin::where('group_id', $group->id)->delete();
 
                 return;
@@ -200,7 +198,7 @@ class LineGroupService
                 $find->user_id     = $userId;
                 $find->group_id    = $group->id;
                 $find->is_sidekick = false;
-                $find->applied_at  = Carbon::now();
+                // $find->applied_at  = Carbon::now();
                 $find->save();
 
                 $this->options['replyMsg'] = '主人~';

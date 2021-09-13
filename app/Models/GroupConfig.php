@@ -16,7 +16,7 @@ class GroupConfig extends Model
         'updated_at'    => 'datetime:Y-m-d H:i:s',
     ];
 
-    protected $hidden = ['id'];
+    // protected $hidden = ['id'];
 
     /**
      * 靜音模式 on/off

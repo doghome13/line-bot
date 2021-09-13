@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class GroupAdmin extends Model
 {
-    const CREATED_AT = null;
+    const CREATED_AT = 'applied_at';
     const UPDATED_AT = null;
 
     protected $table = 'group_admin';
