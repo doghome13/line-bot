@@ -143,11 +143,16 @@ class LineBotService
         if ($event['source']['type'] == static::SOURCE_TYPE_GROUP) {
             $groupService = new LineGroupService($event, $message['text'], $options);
             $options      = $groupService->run()->options;
+        } else {
+            // 是否為個人用戶的訊息
+            $userService = new LineUserService($event, $message['text'], $options);
+            $options     = $userService->run()->options;
+        }
 
-            // 表示有條件未符合、靜音模式
-            if ($options == null) {
-                return;
-            }
+        // 預設不回覆
+        // 群組訊息則是有條件未符合、靜音模式
+        if ($options == null) {
+            return;
         }
 
         Artisan::call('line:bot:reply', $options);
