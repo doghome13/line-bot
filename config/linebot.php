@@ -9,4 +9,5 @@ return [
     'update_group' => env('LINE_BOT_UPDATE_GROUP_INFO', 'update group'),
     'claim_group_admin' => env('LINE_BOT_CLAIM_GROUP_ADMIN', 'you are mine!'),
     'claim_group_sidekick' => env('LINE_BOT_CLAIM_GROUP_SIDEKICK', 'my lord'),
+    'able_apply_group_sidekick' => env('LINE_BOT_APPLY_GROUP_SIDEKICK', 'kneel down'),
 ];

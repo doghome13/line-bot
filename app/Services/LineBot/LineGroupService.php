@@ -8,6 +8,7 @@ use App\Models\GroupConfig;
 use Artisan;
 use Carbon\Carbon;
 use Exception;
+use DB;
 
 class LineGroupService
 {
@@ -70,6 +71,11 @@ class LineGroupService
             case config('linebot.claim_group_sidekick'):
                 // 註冊小幫手
                 $this->registerSidekick();
+                break;
+
+            case config('linebot.able_apply_group_sidekick'):
+                // 申請小幫手的權限
+                $this->ableApplySidekick();
                 break;
 
             default:
@@ -307,6 +313,57 @@ class LineGroupService
             $this->options['replyMsg'] = '奴才';
         } catch (Exception $e) {
             $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
+            event(new ThrowException($e));
+        }
+    }
+
+    /**
+     * 申請小幫手的權限
+     *
+     * @return void
+     */
+    private function ableApplySidekick()
+    {
+        try {
+            $this->options['--no-specific'] = true;
+            $userId                         = $this->event['source']['userId'];
+            $admin = $this->groupAdmin($this->groupId);
+
+            // 主要管理者才能修改
+            if ($admin == null || $admin->user_id != $userId) {
+                $this->stopMsg();
+                return;
+            }
+
+            // find group_config
+            $group = $admin->group;
+
+            // 開放申請
+            if (!$group->need_sidekick) {
+                $group->need_sidekick = true;
+                $group->save();
+
+                $this->options['replyMsg'] = '--以下開放申請奴才--';
+                return;
+            }
+
+            // 關閉申請
+            DB::beginTransaction();
+
+            $group->need_sidekick = false;
+            $group->save();
+
+            // 其他申請未通過則刪除
+            GroupAdmin::where('group_id', $group->id)
+                ->where('is_sidekick', true)
+                ->where('applied', true)
+                ->delete();
+
+            DB::commit();
+            $this->options['replyMsg'] = '--申請奴才截止--';
+        } catch (Exception $e) {
+            DB::rollBack();
+            $this->options['replyMsg'] = '罐罐不夠多，更新群組設定失敗';
             event(new ThrowException($e));
         }
     }

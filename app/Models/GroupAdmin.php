@@ -18,4 +18,9 @@ class GroupAdmin extends Model
         'applied'     => 'boolean',
         'applied_at'  => 'datetime:Y-m-d H:i:s',
     ];
+
+    public function group()
+    {
+        return $this->belongsTo(GroupConfig::class, 'group_id');
+    }
 }
