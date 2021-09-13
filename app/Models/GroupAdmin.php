@@ -15,6 +15,7 @@ class GroupAdmin extends Model
         'group_id'    => 'integer',
         'user_id'     => 'string',
         'is_sidekick' => 'boolean',
+        'applied'     => 'boolean',
         'applied_at'  => 'datetime:Y-m-d H:i:s',
     ];
 }
