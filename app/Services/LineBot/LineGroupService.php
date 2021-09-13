@@ -67,6 +67,11 @@ class LineGroupService
                 $this->registerAdmin();
                 break;
 
+            case config('linebot.claim_group_sidekick'):
+                // 註冊小幫手
+                $this->registerSidekick();
+                break;
+
             default:
                 // 最後才是一般文字訊息，檢查是否靜音
                 $this->checkSilentMode();
@@ -107,6 +112,33 @@ class LineGroupService
                 ->from('group_config')
                 ->where('group_id', $groupId);
         })
+            ->where('is_sidekick', false)
+            ->first();
+    }
+
+    /**
+     * 該群組的小幫手
+     *
+     * @param string $groupId // 群組 id
+     * @param mixed $userId // 指定用戶的 id 來檢查身分
+     * @return GroupAdmin|null
+     */
+    public static function groupSidekick(string $groupId, $userId = null)
+    {
+        $query = GroupAdmin::where('group_id', function ($sub) use ($groupId) {
+            return $sub->select('id')
+                ->from('group_config')
+                ->where('group_id', $groupId);
+        })
+            ->where('is_sidekick', true);
+
+        if ($userId == null) {
+            // applied = false，表示審核通過
+            return $query->where('applied', false)->get();
+        }
+
+        return $query->select(['id', 'applied'])
+            ->where('user_id', $userId)
             ->first();
     }
 
@@ -212,6 +244,67 @@ class LineGroupService
 
             // 已是管理者
             $this->options['replyMsg'] = '別來調戲朕';
+        } catch (Exception $e) {
+            $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
+            event(new ThrowException($e));
+        }
+    }
+
+    /**
+     * 註冊小幫手
+     *
+     * @return void
+     */
+    private function registerSidekick()
+    {
+        try {
+            $this->options['--no-specific'] = true;
+            $userId                         = $this->event['source']['userId'];
+
+            // 是否申請過
+            $check = $this->groupSidekick($this->groupId, $userId);
+
+            if ($check != null) {
+                // group_admin.applied 來驗證申請是否通過
+                $this->options['replyMsg'] = $check->applied ? '審核中' : '你這奴才';
+                return;
+            }
+
+            $group         = $this->groupConfig($this->groupId);
+            $countSidekick = GroupAdmin::selectRaw('COUNT(1) AS count')
+                ->where('group_id', $group->id)
+                ->where('is_sidekick', true)
+                ->first();
+
+            // 是否需要小幫手，上限為 3 位
+            if (!$group->need_sidekick || $countSidekick->count == 3) {
+                $this->options['replyMsg'] = '朕不缺奴才';
+                return;
+            }
+
+            // 未設定主要管理者
+            $admin = $this->groupAdmin($this->groupId);
+
+            if ($admin == null) {
+                $this->options['replyMsg'] = '我還沒有主人';
+                return;
+            }
+
+            // 避免管理者身分錯亂
+            if ($admin->user_id == $userId) {
+                $this->options['replyMsg'] = '大膽奴才';
+                return;
+            }
+
+            $group                 = $this->groupConfig($this->groupId);
+            $sidekick              = new GroupAdmin();
+            $sidekick->user_id     = $userId;
+            $sidekick->group_id    = $group->id;
+            $sidekick->is_sidekick = true;
+            $sidekick->applied     = true;
+            $sidekick->save();
+
+            $this->options['replyMsg'] = '奴才';
         } catch (Exception $e) {
             $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
             event(new ThrowException($e));

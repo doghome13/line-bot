@@ -8,4 +8,5 @@ return [
     'silent_off' => env('LINE_BOT_SILENT_OFF', 'speak'),
     'update_group' => env('LINE_BOT_UPDATE_GROUP_INFO', 'update group'),
     'claim_group_admin' => env('LINE_BOT_CLAIM_GROUP_ADMIN', 'you are mine!'),
+    'claim_group_sidekick' => env('LINE_BOT_CLAIM_GROUP_SIDEKICK', 'my lord'),
 ];
