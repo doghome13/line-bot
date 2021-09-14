@@ -14,6 +14,7 @@ class LineBotService
     const EVENT_MEMBER_JOINED = 'memberJoined';
     const EVENT_MEMBER_LEFT   = 'memberLeft';
     const EVENT_JOIN          = 'join'; // bot 加入群組
+    const EVENT_POSTBACK      = 'postback';
 
     const SOURCE_TYPE_GROUP = 'group';
 
@@ -62,6 +63,10 @@ class LineBotService
                 case static::EVENT_MEMBER_LEFT:
                     // 會員離開群組
                     (new LineGroupService($event))->removeAdmin();
+                    break;
+
+                case static::EVENT_POSTBACK:
+                    set_log($event);
                     break;
 
                 default:

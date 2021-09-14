@@ -13,6 +13,7 @@ use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselTemplateBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 use LINE\LINEBot\TemplateActionBuilder\MessageTemplateActionBuilder;
+use LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder;
 
 class LineBotReply extends Command
 {
@@ -138,7 +139,9 @@ class LineBotReply extends Command
 
         foreach ($data as $user) {
             // 先建立 actions
-            $action = new MessageTemplateActionBuilder($user->name, $user->id);
+            // $action = new MessageTemplateActionBuilder($user->name, $user->id);
+            $data = "id={$user->id}";
+            $action = new PostbackTemplateActionBuilder($user->name, $data, $user->name);
 
             // ImageCarouselColumnTemplateBuilder
             $userTemplate[] = new ImageCarouselColumnTemplateBuilder($user->picture_url, $action);
