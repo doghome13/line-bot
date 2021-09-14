@@ -73,7 +73,7 @@ class LineUserService
      */
     private function findGroupByAdmin()
     {
-        $groups = GroupConfig::select(['id', 'name'])
+        $groups = GroupConfig::select(['id', 'name', 'picture_url'])
             ->whereIn('id', function ($sub) {
                 return $sub->select('group_id')
                     ->from('group_admin')
@@ -87,15 +87,9 @@ class LineUserService
             return;
         }
 
-        $output   = [];
-        $output[] = "請輸入對應群組的數字\n\n群組:";
-
-        foreach ($groups as $group) {
-            $output[] = "#{$group->id} - {$group->name}";
-        }
-
-        // 回傳格式
-        $this->options['replyMsg'] = implode("\n", $output);
+        // 回傳格式 JSON
+        $this->options['replyMsg'] = $groups->toJson();
+        $this->options['--template-confirm'] = true;
     }
 
     /**

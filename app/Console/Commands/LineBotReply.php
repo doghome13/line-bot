@@ -7,7 +7,12 @@ use App\Services\LineBot\LineBotService;
 use Exception;
 use Illuminate\Console\Command;
 use LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ConfirmTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselColumnTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
+use LINE\LINEBot\TemplateActionBuilder\MessageTemplateActionBuilder;
 
 class LineBotReply extends Command
 {
@@ -22,6 +27,7 @@ class LineBotReply extends Command
                             {--silent-on}
                             {--silent-off}
                             {--no-specific : 不使用特定字句}
+                            {--template-confirm : Confirm 樣板}
                             ';
 
     /**
@@ -52,15 +58,37 @@ class LineBotReply extends Command
             // 套用 LINE API SDK
             $bot = LineBotService::getBot();
 
-            // 對於靜音模式，回應貼圖
-            if ($this->option('silent-on') || $this->option('silent-off')) {
-                $packageId = 6632;
-                $stickerId = $this->option('silent-on') ? 11825375 : 11825376;
-                $textMessageBuilder = new StickerMessageBuilder($packageId, $stickerId);
-            } else {
-                $textMessageBuilder = new TextMessageBuilder($this->randomMsg());
+            // 篩選條件
+            $option = '';
+
+            foreach ($this->options() as $key => $value) {
+                if ($key == 'no-specific') {
+                    // do nothing
+                } elseif ($value) {
+                    $option = $key;
+                    break;
+                }
             }
 
+            switch ($option) {
+                case 'silent-on':
+                case 'silent-off':
+                    // 對於靜音模式，回應貼圖
+                    $packageId = 6632;
+                    $stickerId = $this->option('silent-on') ? 11825375 : 11825376;
+                    $textMessageBuilder = new StickerMessageBuilder($packageId, $stickerId);
+                    break;
+
+                case 'template-confirm':
+                    $textMessageBuilder = $this->buildConfirmTemplate();
+                    break;
+
+                default:
+                    $textMessageBuilder = new TextMessageBuilder($this->randomMsg());
+                    break;
+            }
+
+            // send
             $response = $bot->replyMessage($this->argument('replyToken'), $textMessageBuilder);
 
             if ($response->isSucceeded()) {
@@ -96,5 +124,29 @@ class LineBotReply extends Command
         }
 
         return implode('', $msg);
+    }
+
+    /**
+     * Confirm 樣板
+     *
+     * @return MessageBuilder
+     */
+    private function buildConfirmTemplate()
+    {
+        $data = json_decode($this->argument('replyMsg'));
+        $userTemplate = [];
+
+        foreach ($data as $user) {
+            // 先建立 actions
+            $action = new MessageTemplateActionBuilder($user->name, $user->id);
+
+            // ImageCarouselColumnTemplateBuilder
+            $userTemplate[] = new ImageCarouselColumnTemplateBuilder($user->picture_url, $action);
+        }
+
+        // ImageCarouselTemplateBuilder
+        $columnTemplate = new ImageCarouselTemplateBuilder($userTemplate);
+
+        return new TemplateMessageBuilder('本裝置不能使用', $columnTemplate);
     }
 }
