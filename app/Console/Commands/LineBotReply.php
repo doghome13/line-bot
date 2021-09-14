@@ -71,67 +71,10 @@ class LineBotReply extends Command
             // 回傳失敗
             set_log($response->getRawBody(), $response->getHTTPStatus());
 
-            // 回傳 message 有一定格式
-            // $url  = 'https://api.line.me/v2/bot/message/reply';
-            // $data = [
-            //     'replyToken' => $this->argument('replyToken'),
-            //     'messages'   => $this->argument('replyMsg'),
-            //     // 'notificationDisabled' => false,
-            // ];
-            // $data = http_build_query($data);
-            // $this->curl($url, $data);
         } catch (Exception $e) {
-            // $this->error('LINE: ' . $e->getLine());
-            // $this->error('MSG:' . $e->getMessage());
             event(new ThrowException($e));
         }
-
-        // $this->line('done!');
     }
-
-    // /**
-    //  * get curl
-    //  *
-    //  * @param string $url // api path
-    //  * @param mixed $content
-    //  * @param bool $isPost // api method
-    //  * @return object
-    //  */
-    // private function curl(string $url, $content, $isPost = true)
-    // {
-    //     $curlHeader = [
-    //         'Content-Type:application/json',
-    //         'Authorization: Bearer ' . config('services.linebot.token'),
-    //     ];
-
-    //     $ch = curl_init();
-    //     curl_setopt($ch, CURLOPT_URL, $url);
-    //     curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeader);
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     curl_setopt($ch, CURLOPT_HEADER, false);
-    //     curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-    //     curl_setopt($ch, CURLOPT_POST, true);
-
-    //     $result      = curl_exec($ch);
-    //     $result      = json_decode($result) ?? null;
-    //     $reponseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    //     curl_close($ch);
-
-    //     // 報錯則不處理
-    //     if ($result === null || $reponseCode !== 200) {
-    //         $errormsg = [
-    //             'curl error: ' . $reponseCode,
-    //             'class: ' . get_class($this),
-    //             'api: ' . $url,
-    //             'msg: ' . ($result ? $result->message : ''),
-    //             'content: ' . json_encode($content),
-    //             'result: ' . $result,
-    //         ];
-    //         throw new Exception(implode(', ', $errormsg));
-    //     }
-
-    //     return $result;
-    // }
 
     /**
      * 隨機回覆
