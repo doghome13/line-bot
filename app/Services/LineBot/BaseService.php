@@ -2,7 +2,7 @@
 
 namespace App\Services\LineBot;
 
-use Artisan;
+use Illuminate\Support\Facades\Artisan;
 
 class BaseService
 {

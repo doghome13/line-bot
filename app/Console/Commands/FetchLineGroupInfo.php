@@ -47,7 +47,6 @@ class FetchLineGroupInfo extends Command
     {
         try {
             $groupId = $this->argument('groupId');
-            $token   = $this->argument('replyToken') ?? '';
 
             $url = "https://api.line.me/v2/bot/group/{$groupId}/summary";
             $res = LineReplyService::curl($url, '', false, static::class);
@@ -58,18 +57,18 @@ class FetchLineGroupInfo extends Command
             $groupConfig->picture_url = $res->pictureUrl;
             $groupConfig->save();
 
-            if ($token != '') {
+            if ($this->hasArgument('replyToken') && $this->hasArgument('msg')) {
                 (new LineReplyService())
                     ->setRandMessage()
-                    ->setText($this->option('msg'))
-                    ->send($token);
+                    ->setText($this->argument('msg'))
+                    ->send($this->argument('replyToken'));
             }
         } catch (Exception $e) {
-            if ($token != '') {
+            if ($this->hasArgument('replyToken')) {
                 (new LineReplyService())
                     ->setRandMessage()
                     ->setText("找不到資料\n這穴壞了")
-                    ->send($token);
+                    ->send($this->argument('replyToken'));
             }
             event(new ThrowException($e));
         }

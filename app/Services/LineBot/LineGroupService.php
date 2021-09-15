@@ -5,8 +5,8 @@ namespace App\Services\LineBot;
 use App\Events\ThrowException;
 use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
-use DB;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class LineGroupService extends BaseService implements BaseInterface
 {
@@ -46,14 +46,8 @@ class LineGroupService extends BaseService implements BaseInterface
                 $options = [
                     'groupId'    => $this->groupId,
                     'replyToken' => $this->event['replyToken'],
-                    'msg'        => '朕來了',
+                    'msg'        => $this->eventType == LineBotService::EVENT_JOIN ? '朕來了' : '好的',
                 ];
-
-                // 排除自動加入群組的事件
-                if ($this->eventType != LineBotService::EVENT_JOIN) {
-                    $options['msg']      = '好的';
-                    $options['rand-msg'] = true;
-                }
 
                 $this->reply($options, 'line:group:info');
                 break;

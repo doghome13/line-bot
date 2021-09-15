@@ -17,9 +17,9 @@ class LineReplyService
      */
     public function __construct()
     {
-        $this->isSilent = false;
-        $this->randMsg = false;
-        $this->specific = false;
+        $this->isSilent       = false;
+        $this->randMsg        = false;
+        $this->specific       = false;
         $this->messageBuilder = [];
     }
 
@@ -44,7 +44,7 @@ class LineReplyService
     {
         $this->randMsg = true;
 
-        return;
+        return $this;
     }
 
     /**
@@ -136,11 +136,16 @@ class LineReplyService
     /**
      * 一般文字
      *
+     * @param string $msg
      * @return $this
      */
     public function setText($msg)
     {
-        $msg = $this->randomMsg($msg);
+        if ($msg == '') {
+            return $this;
+        }
+
+        $msg                    = $this->randomMsg($msg);
         $this->messageBuilder[] = new TextMessageBuilder($msg);
 
         return $this;
@@ -190,9 +195,9 @@ class LineReplyService
      * @param string $msg
      * @return string
      */
-    private function randomMsg(string $msg = '')
+    private function randomMsg(string $msg)
     {
-        if (!$this->randMsg || $msg == '') {
+        if (!$this->randMsg) {
             return $msg;
         }
 
