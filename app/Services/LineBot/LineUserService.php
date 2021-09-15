@@ -7,6 +7,8 @@ use App\Models\GroupConfig;
 
 class LineUserService extends BaseService implements BaseInterface
 {
+    const OPTION_FIND_GROUP = 'find_group';
+
     /**
      * 用戶
      *
@@ -24,26 +26,45 @@ class LineUserService extends BaseService implements BaseInterface
     /**
      * handle events
      *
-     * @return $this
+     * @return void
      */
     public function run()
     {
-        if ($this->message == '' || $this->userId == null) {
-            return $this;
+        if ($this->trigger == '' || $this->userId == null) {
+            return;
         }
 
-        switch ($this->message) {
-            case config('linebot.review_group_sidekick'):
-                // 審核(所有)小幫手的申請，先列出管理的群組
-                $this->findGroupByAdmin();
-                break;
+        if ($this->eventType == LineBotService::EVENT_MESSAGE) {
+            switch ($this->trigger) {
+                case 'list':
+                    $options = $this->getOptions();
+                    (new LineReplyService())
+                        ->setButtonList($options)
+                        ->send($this->params['replyToken']);
+                    break;
 
-            default:
-                // 預設是不回覆訊息
-                break;
+                default:
+                    // 預設是不回覆訊息
+                    break;
+            }
+
+            return;
         }
 
-        return $this;
+        if ($this->eventType == LineBotService::EVENT_POSTBACK) {
+            switch ($this->trigger) {
+                case static::OPTION_FIND_GROUP:
+                    // 審核(所有)小幫手的申請，先列出管理的群組
+                    $this->findGroupByAdmin();
+                    break;
+
+                default:
+                    // 預設是不回覆訊息
+                    break;
+            }
+
+            return;
+        }
     }
 
     /**

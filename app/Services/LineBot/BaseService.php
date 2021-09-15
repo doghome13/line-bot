@@ -3,6 +3,7 @@
 namespace App\Services\LineBot;
 
 use Illuminate\Support\Facades\Artisan;
+use ReflectionClass;
 
 class BaseService
 {
@@ -32,13 +33,13 @@ class BaseService
      */
     public function __construct($event, string $trigger, array $params)
     {
-        $this->event      = $event;
-        $this->trigger    = $trigger ?? '';
-        $this->params     = $params ?? [];
-        $this->eventType  = '';
+        $this->event     = $event;
+        $this->trigger   = $trigger ?? '';
+        $this->params    = $params ?? [];
+        $this->eventType = '';
 
         if (isset($this->event['type'])) {
-            $this->eventType  = $this->event['type'];
+            $this->eventType = $this->event['type'];
         }
     }
 
@@ -51,5 +52,24 @@ class BaseService
     public function reply(array $options, $command = 'line:bot:reply')
     {
         Artisan::call($command, $options);
+    }
+
+    /**
+     * get options
+     *
+     * @return array
+     */
+    public function getOptions()
+    {
+        $reflectionClass = new ReflectionClass(static::class);
+        $options         = [];
+
+        foreach ($reflectionClass->getConstants() as $key => $option) {
+            if (starts_with($key, 'OPTION_')) {
+                $options[] = $option;
+            }
+        }
+
+        return $options;
     }
 }

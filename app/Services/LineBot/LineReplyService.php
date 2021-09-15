@@ -6,7 +6,10 @@ use Exception;
 use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 use LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ButtonTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
+use LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder;
 
 class LineReplyService
 {
@@ -61,6 +64,10 @@ class LineReplyService
 
     public function send(string $token)
     {
+        if (empty($this->messageBuilder)) {
+            return;
+        }
+
         $bot = static::getBot();
 
         foreach ($this->messageBuilder as $messageBuilder) {
@@ -190,6 +197,37 @@ class LineReplyService
     }
 
     /**
+     * 按鈕樣板
+     *
+     * @param array $options
+     * @return $this
+     */
+    public function setButtonList(array $options)
+    {
+        $buttonActions = [];
+
+        foreach ($options as $option) {
+            // 先建立 actions // PostbackTemplateActionBuilder
+            $data = "option={$option}";
+            $label = trans("linebot.button.{$option}");
+            $buttonActions[] = new PostbackTemplateActionBuilder($label, $data, $label);
+        }
+
+        // ButtonTemplateBuilder
+        $template = new ButtonTemplateBuilder(
+            '今晚你想來點什麼',
+            '除了後空翻',
+            null,
+            $buttonActions
+        );
+
+        // TemplateMessageBuilder
+        $this->messageBuilder[] = new TemplateMessageBuilder('本裝置不能使用', $template);
+
+        return $this;
+    }
+
+    /**
      * 隨機回覆
      *
      * @param string $msg
@@ -216,5 +254,36 @@ class LineReplyService
         }
 
         return implode('', $output);
+    }
+
+    /**
+     * build postback data
+     *
+     * @return string
+     */
+    public static function encodeData(array $params)
+    {
+        $output = [];
+
+        foreach ($params as $key => $param)
+        {
+            $output[] = "{$key}={$param}";
+        }
+
+        return implode('&', $output);
+    }
+
+    public static function decodeData(string $params)
+    {
+        $output = [];
+        $params = explode('&', $params);
+        $params = is_array($params) ? $params : [$params];
+
+        foreach ($params as $param) {
+            $split = explode('=', $param);
+            $output[$split[0]] = $split[1];
+        }
+
+        return $output;
     }
 }

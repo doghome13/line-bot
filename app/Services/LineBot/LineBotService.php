@@ -47,7 +47,7 @@ class LineBotService
                     break;
 
                 case static::EVENT_POSTBACK:
-                    set_log($event);
+                    $this->eventPostback($event);
                     break;
 
                 default:
@@ -87,6 +87,35 @@ class LineBotService
 
             case static::SOURCE_TYPE_USER:
                 (new LineUserService($event, $text, $params))->run();
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
+    private function eventPostback($event)
+    {
+        $sourceType   = $event['source']['type'] ?? '';
+        $data         = $event['postback']['data'];
+        list($option) = LineReplyService::decodeData($data);
+
+        set_log($option);
+
+        // 會得到 replyToken, message
+        $params = [
+            'replyToken' => $event['replyToken'],
+            'data'       => $event['postback']['data'],
+        ];
+
+        switch ($sourceType) {
+            case static::SOURCE_TYPE_GROUP:
+                (new LineGroupService($event, $option, $params))->run();
+                break;
+
+            case static::SOURCE_TYPE_USER:
+                (new LineUserService($event, $option, $params))->run();
                 break;
 
             default:
