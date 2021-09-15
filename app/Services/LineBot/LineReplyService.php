@@ -197,14 +197,16 @@ class LineReplyService
      */
     private function randomMsg(string $msg)
     {
+        $randMsg = $this->specific ? mt_rand(1, 10) : 0;
+        $randMsg = $randMsg == 1 ? '老子累了' : $msg;
+
         if (!$this->randMsg) {
-            return $msg;
+            return $randMsg;
         }
 
         $randCount = mt_rand(1, 5);
-        $randMsg   = mt_rand(1, 10);
         $output    = [
-            ($randMsg == 1 && $this->specific) ? '老子累了' : $msg,
+            $randMsg,
             ' ',
         ];
 
