@@ -2,11 +2,6 @@
 
 namespace App\Services\LineBot;
 
-use Artisan;
-use Exception;
-use LINE\LINEBot;
-use LINE\LINEBot\HTTPClient\CurlHTTPClient;
-
 class LineBotService
 {
     // type of webhook event
@@ -17,6 +12,7 @@ class LineBotService
     const EVENT_POSTBACK      = 'postback';
 
     const SOURCE_TYPE_GROUP = 'group';
+    const SOURCE_TYPE_USER  = 'user';
 
     /**
      * 訊息類型-文字
@@ -30,17 +26,6 @@ class LineBotService
         $this->events = $events ?? [];
     }
 
-    /**
-     * get line bot
-     *
-     * @return LINEBot
-     */
-    public static function getBot()
-    {
-        $httpClient = new CurlHTTPClient(config('services.linebot.token'));
-        return new LINEBot($httpClient, ['channelSecret' => config('services.linebot.secret')]);
-    }
-
     public function run()
     {
         foreach ($this->events as $event) {
@@ -52,12 +37,8 @@ class LineBotService
                     break;
 
                 case static::EVENT_JOIN:
-                    // 加入群組
-                    $options = [
-                        'groupId'    => $event['source']['groupId'],
-                        'replyToken' => $event['replyToken'],
-                    ];
-                    Artisan::call('line:group:info', $options);
+                    // 第一次加入群組
+                    (new LineGroupService($event, config('linebot.update_group')))->run();
                     break;
 
                 case static::EVENT_MEMBER_LEFT:
@@ -77,54 +58,6 @@ class LineBotService
     }
 
     /**
-     * build curl
-     *
-     * @param string $url // api path
-     * @param mixed $content
-     * @param bool $isPost // api method
-     * @param string $class
-     * @return object
-     */
-    public static function curl(string $url, $content, $isPost = true, $className = '')
-    {
-        $curlHeader = [
-            'Content-Type:application/json',
-            'Authorization: Bearer ' . config('services.linebot.token'),
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeader);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-
-        if ($isPost) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-            curl_setopt($ch, CURLOPT_POST, true);
-        }
-
-        $result      = curl_exec($ch);
-        $response    = json_decode($result) ?? null;
-        $reponseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        // 報錯則不處理
-        if ($response === null || $reponseCode !== 200) {
-            $errormsg = [
-                'curl error: ' . $reponseCode,
-                'class: ' . $className,
-                'api: ' . $url,
-                'msg: ' . ($response ? $response->message : ''),
-                'content: ' . json_encode($content),
-                'result: ' . $result ?? 'null',
-            ];
-            throw new Exception(implode(', ', $errormsg));
-        }
-
-        return $response;
-    }
-
-    /**
      * 接受訊息事件
      *
      * @return void
@@ -138,28 +71,27 @@ class LineBotService
             return;
         }
 
+        $sourceType = $event['source']['type'] ?? '';
+        $text       = trim($message['text']);
+
         // 會得到 replyToken, message
-        $options = [
+        $params = [
             'replyToken' => $event['replyToken'],
-            'replyMsg'   => $message['text'],
+            'replyMsg'   => $text,
         ];
 
-        // 來自群組的訊息
-        if ($event['source']['type'] == static::SOURCE_TYPE_GROUP) {
-            $groupService = new LineGroupService($event, $message['text'], $options);
-            $options      = $groupService->run()->options;
-        } else {
-            // 是否為個人用戶的訊息
-            $userService = new LineUserService($event, $message['text'], $options);
-            $options     = $userService->run()->options;
-        }
+        switch ($sourceType) {
+            case static::SOURCE_TYPE_GROUP:
+                (new LineGroupService($event, $text, $params))->run();
+                break;
 
-        // 預設不回覆
-        // 群組訊息則是有條件未符合、靜音模式
-        if ($options == null) {
-            return;
-        }
+            case static::SOURCE_TYPE_USER:
+                (new LineUserService($event, $text, $params))->run();
+                break;
 
-        Artisan::call('line:bot:reply', $options);
+            default:
+                # code...
+                break;
+        }
     }
 }

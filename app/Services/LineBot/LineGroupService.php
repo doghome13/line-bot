@@ -5,32 +5,21 @@ namespace App\Services\LineBot;
 use App\Events\ThrowException;
 use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
-use Artisan;
-use Carbon\Carbon;
-use Exception;
 use DB;
+use Exception;
 
-class LineGroupService
+class LineGroupService extends BaseService implements BaseInterface
 {
-    /**
-     * api 參數
-     *
-     * @var array
-     */
-    public $options;
-
     /**
      * 群組事件
      *
      * @param mixed $event
-     * @param string $message // 本次訊息，可用來觸發事件
-     * @param array $options // api 參數
+     * @param string $trigger // 本次訊息，可用來觸發事件
+     * @param array $params // api 參數
      */
-    public function __construct($event, string $message = '', array $options = [])
+    public function __construct($event, $trigger = '', $params = [])
     {
-        $this->event   = $event;
-        $this->options = $options;
-        $this->message = $message;
+        parent::__construct($event, $trigger, $params);
 
         // groupId 為必須
         $this->groupId = $event['source']['groupId'] ?? null;
@@ -43,24 +32,30 @@ class LineGroupService
     /**
      * handle events
      *
-     * @return $this
+     * @return void
      */
     public function run()
     {
-        if ($this->message == '') {
-            return $this;
+        if ($this->trigger == '') {
+            return;
         }
 
-        switch ($this->message) {
+        switch ($this->trigger) {
             case config('linebot.update_group'):
                 // 更新群組資訊
                 $options = [
                     'groupId'    => $this->groupId,
                     'replyToken' => $this->event['replyToken'],
-                    'msg'        => '好的',
+                    'msg'        => '朕來了',
                 ];
-                Artisan::call('line:group:info', $options);
-                $this->stopMsg();
+
+                // 排除自動加入群組的事件
+                if ($this->eventType != LineBotService::EVENT_JOIN) {
+                    $options['msg']      = '好的';
+                    $options['rand-msg'] = true;
+                }
+
+                $this->reply($options, 'line:group:info');
                 break;
 
             case config('linebot.claim_group_admin'):
@@ -78,13 +73,58 @@ class LineGroupService
                 $this->ableApplySidekick();
                 break;
 
+            case config('linebot.silent_on'):
+                // 靜音 ON
+                $config = $this->groupConfig($this->groupId);
+
+                if ($config == null || $config->silent_mode) {
+                    return;
+                }
+
+                $config->switchSilent();
+                $options = [
+                    'replyToken'  => $this->event['replyToken'],
+                    'replyMsg'    => '',
+                    '--silent-on' => true,
+                ];
+                $this->reply($options);
+                break;
+
+            case config('linebot.silent_off'):
+                // 靜音 OFF
+                $config = $this->groupConfig($this->groupId);
+
+                if ($config == null || !$config->silent_mode) {
+                    return;
+                }
+
+                $config->switchSilent();
+                $options = [
+                    'replyToken'   => $this->event['replyToken'],
+                    'replyMsg'     => '',
+                    '--silent-off' => true,
+                ];
+                $this->reply($options);
+                break;
+
             default:
-                // 最後才是一般文字訊息，檢查是否靜音
-                $this->checkSilentMode();
+                if ($this->eventType == LineBotService::EVENT_MESSAGE) {
+                    $config = $this->groupConfig($this->groupId);
+
+                    if ($config == null || $config->silent_mode) {
+                        return;
+                    }
+
+                    $options = [
+                        'replyToken' => $this->event['replyToken'],
+                        'replyMsg'   => $this->trigger,
+                        '--specific' => true,
+                        '--rand-msg' => true,
+                    ];
+                    $this->reply($options);
+                }
                 break;
         }
-
-        return $this;
     }
 
     /**
@@ -97,8 +137,9 @@ class LineGroupService
         $find = GroupConfig::where('group_id', $groupId)->first();
 
         if ($find == null) {
-            $find           = new GroupConfig();
-            $find->group_id = $groupId;
+            $find              = new GroupConfig();
+            $find->group_id    = $groupId;
+            $find->silent_mode = true;
             $find->save();
         }
 
@@ -183,41 +224,6 @@ class LineGroupService
     }
 
     /**
-     * 驗證靜音模式
-     * 目前只支援文字訊息的觸發
-     *
-     * @return $this
-     */
-    private function checkSilentMode()
-    {
-        $silentOn  = config('linebot.silent_on');
-        $silentOff = config('linebot.silent_off');
-        $config    = $this->groupConfig($this->groupId);
-
-        if ($this->message == $silentOff && $config->silent_mode) {
-            // 靜音 OFF
-            $config->switchSilent();
-            $this->options['--silent-off'] = true;
-        } else if ($this->message == $silentOn && !$config->silent_mode) {
-            // 靜音 ON
-            $config->switchSilent();
-            $this->options['--silent-on'] = true;
-        } else if ($config->silent_mode) {
-            $this->options = null;
-        }
-    }
-
-    /**
-     * 強制不再傳其他訊息
-     *
-     * @return void
-     */
-    private function stopMsg()
-    {
-        $this->options = null;
-    }
-
-    /**
      * 註冊群組管理者
      *
      * @return void
@@ -225,9 +231,8 @@ class LineGroupService
     private function registerAdmin()
     {
         try {
-            $this->options['--no-specific'] = true;
-            $userId                         = $this->event['source']['userId'];
-            $admin                          = $this->groupAdmin($this->groupId);
+            $userId = $this->event['source']['userId'];
+            $admin  = $this->groupAdmin($this->groupId);
 
             // 註冊
             if ($admin == null) {
@@ -239,19 +244,39 @@ class LineGroupService
                 // $find->applied_at  = Carbon::now();
                 $find->save();
 
-                $this->options['replyMsg'] = '主人~';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => '主人~',
+                    '--rand-msg' => true,
+                ];
+                $this->reply($options);
                 return;
             }
 
             if ($admin != null && $admin->user_id != $userId) {
-                $this->options['replyMsg'] = '朕 心有所屬，退下吧';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => "朕 心有所屬\n退下吧",
+                    '--rand-msg' => true,
+                ];
+                $this->reply($options);
                 return;
             }
 
             // 已是管理者
-            $this->options['replyMsg'] = '別來調戲朕';
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => "別來調戲朕",
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
         } catch (Exception $e) {
-            $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => "更新管理員失敗\n罐罐不夠多",
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
             event(new ThrowException($e));
         }
     }
@@ -264,15 +289,19 @@ class LineGroupService
     private function registerSidekick()
     {
         try {
-            $this->options['--no-specific'] = true;
-            $userId                         = $this->event['source']['userId'];
+            $userId = $this->event['source']['userId'];
 
             // 是否申請過
             $check = $this->groupSidekick($this->groupId, $userId);
 
             if ($check != null) {
                 // group_admin.applied 來驗證申請是否通過
-                $this->options['replyMsg'] = $check->applied ? '審核中' : '你這奴才';
+                $msg     = $check->applied ? '審核中' : '你這奴才';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => $msg,
+                ];
+                $this->reply($options);
                 return;
             }
 
@@ -284,7 +313,11 @@ class LineGroupService
 
             // 是否需要小幫手，上限為 3 位
             if (!$group->need_sidekick || $countSidekick->count == 3) {
-                $this->options['replyMsg'] = '朕不缺奴才';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => '朕不缺奴才',
+                ];
+                $this->reply($options);
                 return;
             }
 
@@ -292,13 +325,21 @@ class LineGroupService
             $admin = $this->groupAdmin($this->groupId);
 
             if ($admin == null) {
-                $this->options['replyMsg'] = '我還沒有主人';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => '我還沒有主人',
+                ];
+                $this->reply($options);
                 return;
             }
 
             // 避免管理者身分錯亂
             if ($admin->user_id == $userId) {
-                $this->options['replyMsg'] = '大膽奴才';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => '大膽奴才',
+                ];
+                $this->reply($options);
                 return;
             }
 
@@ -310,9 +351,19 @@ class LineGroupService
             $sidekick->applied     = true;
             $sidekick->save();
 
-            $this->options['replyMsg'] = '奴才';
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => '還不快謝主隆恩',
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
         } catch (Exception $e) {
-            $this->options['replyMsg'] = '罐罐不夠多，更新管理員失敗';
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => "更新管理員失敗\n罐罐不夠多",
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
             event(new ThrowException($e));
         }
     }
@@ -325,13 +376,11 @@ class LineGroupService
     private function ableApplySidekick()
     {
         try {
-            $this->options['--no-specific'] = true;
-            $userId                         = $this->event['source']['userId'];
-            $admin = $this->groupAdmin($this->groupId);
+            $userId = $this->event['source']['userId'];
+            $admin  = $this->groupAdmin($this->groupId);
 
             // 主要管理者才能修改
             if ($admin == null || $admin->user_id != $userId) {
-                $this->stopMsg();
                 return;
             }
 
@@ -343,7 +392,11 @@ class LineGroupService
                 $group->need_sidekick = true;
                 $group->save();
 
-                $this->options['replyMsg'] = '--以下開放申請奴才--';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => '--以下開放申請奴才--',
+                ];
+                $this->reply($options);
                 return;
             }
 
@@ -358,12 +411,23 @@ class LineGroupService
                 ->where('is_sidekick', true)
                 ->where('applied', true)
                 ->delete();
-
             DB::commit();
-            $this->options['replyMsg'] = '--申請奴才截止--';
+
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => '--申請奴才截止--',
+            ];
+            $this->reply($options);
         } catch (Exception $e) {
             DB::rollBack();
-            $this->options['replyMsg'] = '罐罐不夠多，更新群組設定失敗';
+
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => "更新群組設定失敗\n罐罐不夠多",
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
+
             event(new ThrowException($e));
         }
     }

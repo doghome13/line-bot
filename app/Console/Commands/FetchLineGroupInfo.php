@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Events\ThrowException;
-use App\Services\LineBot\LineBotService;
 use App\Services\LineBot\LineGroupService;
+use App\Services\LineBot\LineReplyService;
 use Exception;
 use Illuminate\Console\Command;
 
@@ -50,7 +50,7 @@ class FetchLineGroupInfo extends Command
             $token   = $this->argument('replyToken') ?? '';
 
             $url = "https://api.line.me/v2/bot/group/{$groupId}/summary";
-            $res = LineBotService::curl($url, '', false, static::class);
+            $res = LineReplyService::curl($url, '', false, static::class);
 
             // 更新資訊
             $groupConfig              = LineGroupService::groupConfig($groupId);
@@ -59,21 +59,17 @@ class FetchLineGroupInfo extends Command
             $groupConfig->save();
 
             if ($token != '') {
-                $options = [
-                    'replyToken'    => $token,
-                    'replyMsg'      => $this->argument('msg') ?? '朕來了',
-                    '--no-specific' => true,
-                ];
-                $this->call('line:bot:reply', $options);
+                (new LineReplyService())
+                    ->setRandMessage()
+                    ->setText($this->option('msg'))
+                    ->send($token);
             }
         } catch (Exception $e) {
             if ($token != '') {
-                $options = [
-                    'replyToken'    => $token,
-                    'replyMsg'      => '找不到資料，這穴壞了',
-                    '--no-specific' => true,
-                ];
-                $this->call('line:bot:reply', $options);
+                (new LineReplyService())
+                    ->setRandMessage()
+                    ->setText("找不到資料\n這穴壞了")
+                    ->send($token);
             }
             event(new ThrowException($e));
         }

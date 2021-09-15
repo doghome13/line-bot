@@ -5,27 +5,19 @@ namespace App\Services\LineBot;
 use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
 
-class LineUserService
+class LineUserService extends BaseService implements BaseInterface
 {
-    /**
-     * api 參數
-     *
-     * @var array
-     */
-    public $options;
-
     /**
      * 用戶
      *
      * @param mixed $event
-     * @param string $message // 本次訊息，可用來觸發事件
-     * @param array $options // api 參數
+     * @param string $trigger // 本次訊息，可用來觸發事件
+     * @param array $params // api 參數
      */
-    public function __construct($event, string $message = '', array $options = [])
+    public function __construct($event, $trigger = '', $params = [])
     {
-        $this->event   = $event;
-        $this->options = $options;
-        $this->message = $message;
+        parent::__construct($event, $trigger, $params);
+
         $this->userId  = $event['source']['userId'] ?? null;
     }
 
@@ -37,7 +29,6 @@ class LineUserService
     public function run()
     {
         if ($this->message == '' || $this->userId == null) {
-            $this->stopMsg();
             return $this;
         }
 
@@ -49,21 +40,10 @@ class LineUserService
 
             default:
                 // 預設是不回覆訊息
-                $this->stopMsg();
                 break;
         }
 
         return $this;
-    }
-
-    /**
-     * 強制不再傳其他訊息
-     *
-     * @return void
-     */
-    private function stopMsg()
-    {
-        $this->options = null;
     }
 
     /**
@@ -83,13 +63,12 @@ class LineUserService
             ->get();
 
         if ($groups->count() == 0) {
-            $this->stopMsg();
             return;
         }
 
         // 回傳格式 JSON
-        $this->options['replyMsg'] = $groups->toJson();
-        $this->options['--template-confirm'] = true;
+        $this->params['replyMsg'] = $groups->toJson();
+        $this->params['--template-confirm'] = true;
     }
 
     /**
@@ -111,7 +90,6 @@ class LineUserService
             ->get();
 
         if ($sidekicks->count() == 0) {
-            $this->stopMsg();
             return;
         }
 
