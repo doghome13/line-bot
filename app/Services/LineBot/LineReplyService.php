@@ -7,6 +7,8 @@ use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 use LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateBuilder\ButtonTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselColumnTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselTemplateBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 use LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder;
@@ -173,26 +175,27 @@ class LineReplyService
     /**
      * 圖片樣板
      *
+     * @param array $options
      * @return $this
      */
-    public function setImageCarousel()
+    public function setImageCarousel(array $options)
     {
-        // $data = json_decode($this->argument('replyMsg'));
-        // $userTemplate = [];
+        $userTemplate = [];
 
-        // foreach ($data as $user) {
-        //     // 先建立 actions
-        //     $data = "id={$user->id}";
-        //     $action = new PostbackTemplateActionBuilder($user->name, $data, $user->name);
+        foreach ($options as $option) {
+            // 先建立 actions
+            $action = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
 
-        //     // ImageCarouselColumnTemplateBuilder
-        //     $userTemplate[] = new ImageCarouselColumnTemplateBuilder($user->picture_url, $action);
-        // }
+            // ImageCarouselColumnTemplateBuilder
+            $userTemplate[] = new ImageCarouselColumnTemplateBuilder($option['img'], $action);
+        }
 
-        // // ImageCarouselTemplateBuilder
-        // $columnTemplate = new ImageCarouselTemplateBuilder($userTemplate);
+        // ImageCarouselTemplateBuilder
+        $columnTemplate = new ImageCarouselTemplateBuilder($userTemplate);
 
-        // return new TemplateMessageBuilder('本裝置不能使用', $columnTemplate);
+        // TemplateMessageBuilder
+        $this->messageBuilder[] = new TemplateMessageBuilder('本裝置不能使用', $columnTemplate);
+
         return $this;
     }
 
@@ -207,10 +210,9 @@ class LineReplyService
         $buttonActions = [];
 
         foreach ($options as $option) {
-            // 先建立 actions // PostbackTemplateActionBuilder
-            $data = "option={$option}";
-            $label = trans("linebot.button.{$option}");
-            $buttonActions[] = new PostbackTemplateActionBuilder($label, $data, $label);
+            // 先建立 actions
+            // PostbackTemplateActionBuilder
+            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
         }
 
         // ButtonTemplateBuilder

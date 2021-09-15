@@ -98,10 +98,12 @@ class LineBotService
     private function eventPostback($event)
     {
         $sourceType   = $event['source']['type'] ?? '';
-        $data         = $event['postback']['data'];
-        list($option) = LineReplyService::decodeData($data);
+        $data = LineReplyService::decodeData($event['postback']['data']);
+        $option = '';
 
-        set_log($option);
+        if (isset($data['option'])) {
+            $option = $data['option'];
+        }
 
         // 會得到 replyToken, message
         $params = [

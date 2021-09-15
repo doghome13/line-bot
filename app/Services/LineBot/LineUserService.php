@@ -20,7 +20,7 @@ class LineUserService extends BaseService implements BaseInterface
     {
         parent::__construct($event, $trigger, $params);
 
-        $this->userId  = $event['source']['userId'] ?? null;
+        $this->userId = $event['source']['userId'] ?? null;
     }
 
     /**
@@ -87,9 +87,21 @@ class LineUserService extends BaseService implements BaseInterface
             return;
         }
 
-        // 回傳格式 JSON
-        $this->params['replyMsg'] = $groups->toJson();
-        $this->params['--template-confirm'] = true;
+        // 回傳格式
+        $input = [];
+
+        foreach ($groups as $group) {
+            $input[] = [
+                'label' => $group->name,
+                'data'  => "id={$group->id}",
+                'text'  => $group->name,
+                'img'   => $group->picture_url,
+            ];
+        }
+
+        (new LineReplyService())
+            ->setImageCarousel($input)
+            ->send($this->params['replyToken']);
     }
 
     /**

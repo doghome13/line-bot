@@ -66,7 +66,11 @@ class BaseService
 
         foreach ($reflectionClass->getConstants() as $key => $option) {
             if (starts_with($key, 'OPTION_')) {
-                $options[] = $option;
+                $options[] = [
+                    'label' => trans("linebot.button.{$option}"),
+                    'data'  => "option={$option}",
+                    'text'  => trans("linebot.button.{$option}"),
+                ];
             }
         }
 
