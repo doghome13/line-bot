@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class LineGroupService extends BaseService implements BaseInterface
 {
+    const OPTION_UPDATE_GROUP = 'update_group';
+    const OPTION_APPLY_ADMIN = 'apply_group_admin';
+    const OPTION_APPLY_SIDEKICK = 'apply_group_sidekick';
+    const OPTION_ABLE_APPLY_SIDEKICK = 'able_apply_group_sidekick'; // 開關小幫手的申請權限
+
     /**
      * 群組事件
      *
