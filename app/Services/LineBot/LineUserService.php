@@ -36,7 +36,7 @@ class LineUserService extends BaseService implements BaseInterface
 
         if ($this->eventType == LineBotService::EVENT_MESSAGE) {
             switch ($this->trigger) {
-                case 'list':
+                case config('linebot.operation_list'):
                     $options = $this->getOptions();
                     (new LineReplyService())
                         ->setButtonList($options)

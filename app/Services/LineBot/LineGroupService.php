@@ -4,7 +4,6 @@ namespace App\Services\LineBot;
 
 use App\Events\ThrowException;
 use App\Models\GroupAdmin;
-use App\Models\GroupConfig;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
@@ -124,42 +123,6 @@ class LineGroupService extends BaseService implements BaseInterface
                 }
                 break;
         }
-    }
-
-    /**
-     * 群組設定
-     *
-     * @return GroupConfig
-     */
-    public static function groupConfig($groupId)
-    {
-        $find = GroupConfig::where('group_id', $groupId)->first();
-
-        if ($find == null) {
-            $find              = new GroupConfig();
-            $find->group_id    = $groupId;
-            $find->silent_mode = true;
-            $find->save();
-        }
-
-        return $find;
-    }
-
-    /**
-     * 該群組的管理員
-     *
-     * @param string $groupId // 群組 id
-     * @return GroupAdmin|null
-     */
-    public static function groupAdmin(string $groupId)
-    {
-        return GroupAdmin::where('group_id', function ($sub) use ($groupId) {
-            return $sub->select('id')
-                ->from('group_config')
-                ->where('group_id', $groupId);
-        })
-            ->where('is_sidekick', false)
-            ->first();
     }
 
     /**

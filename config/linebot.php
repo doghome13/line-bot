@@ -11,4 +11,5 @@ return [
     'claim_group_sidekick' => env('LINE_BOT_CLAIM_GROUP_SIDEKICK', 'my lord'),
     'able_apply_group_sidekick' => env('LINE_BOT_APPLY_GROUP_SIDEKICK', 'kneel down'),
     'review_group_sidekick' => env('LINE_BOT_REVIEW_GROUP_SIDEKICK', 'my sidekick'),
+    'operation_list' => env('LINE_BOT_OPERATION_LIST', 'hello!'),
 ];

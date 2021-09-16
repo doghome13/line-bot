@@ -224,7 +224,7 @@ class LineReplyService
         );
 
         // TemplateMessageBuilder
-        $this->messageBuilder[] = new TemplateMessageBuilder('本裝置不能使用', $template);
+        $this->messageBuilder[] = new TemplateMessageBuilder('喵喵喵喵喵喵', $template);
 
         return $this;
     }
