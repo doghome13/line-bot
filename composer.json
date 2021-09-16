@@ -36,6 +36,7 @@
     },
     "autoload": {
         "files": [
+            "app/Helpers/postgres.php",
             "app/Helpers/devLogs.php"
         ],
         "psr-4": {

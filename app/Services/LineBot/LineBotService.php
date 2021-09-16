@@ -2,17 +2,17 @@
 
 namespace App\Services\LineBot;
 
-use App\Models\GroupConfig;
-use Artisan;
-use LINE\LINEBot;
-use LINE\LINEBot\HTTPClient\CurlHTTPClient;
-
 class LineBotService
 {
+    // type of webhook event
     const EVENT_MESSAGE       = 'message';
     const EVENT_MEMBER_JOINED = 'memberJoined';
+    const EVENT_MEMBER_LEFT   = 'memberLeft';
+    const EVENT_JOIN          = 'join'; // bot 加入群組
+    const EVENT_POSTBACK      = 'postback';
 
     const SOURCE_TYPE_GROUP = 'group';
+    const SOURCE_TYPE_USER  = 'user';
 
     /**
      * 訊息類型-文字
@@ -26,17 +26,6 @@ class LineBotService
         $this->events = $events ?? [];
     }
 
-    /**
-     * get line bot
-     *
-     * @return LINEBot
-     */
-    public static function getBot()
-    {
-        $httpClient = new CurlHTTPClient(config('services.linebot.token'));
-        return new LINEBot($httpClient, ['channelSecret' => config('services.linebot.secret')]);
-    }
-
     public function run()
     {
         foreach ($this->events as $event) {
@@ -45,6 +34,20 @@ class LineBotService
             switch ($type) {
                 case static::EVENT_MESSAGE:
                     $this->eventMessage($event);
+                    break;
+
+                case static::EVENT_JOIN:
+                    // 第一次加入群組
+                    (new LineGroupService($event, LineGroupService::OPTION_ADMIN_UPDATE_GROUP))->run();
+                    break;
+
+                case static::EVENT_MEMBER_LEFT:
+                    // 會員離開群組
+                    (new LineGroupService($event))->removeAdmin();
+                    break;
+
+                case static::EVENT_POSTBACK:
+                    $this->eventPostback($event);
                     break;
 
                 default:
@@ -68,55 +71,58 @@ class LineBotService
             return;
         }
 
+        $sourceType = $event['source']['type'] ?? '';
+        $text       = trim($message['text']);
+
         // 會得到 replyToken, message
-        $options = [
+        $params = [
             'replyToken' => $event['replyToken'],
-            'replyMsg'   => $message['text'],
+            'replyMsg'   => $text,
         ];
-        $findGroup = $this->groupConfig($event) ?? null;
 
-        // 群組事件
-        if ($findGroup != null) {
-            if ($message['text'] == config('services.linebot.silent_off')
-                && $findGroup->silent_mode) {
-                // 靜音 OFF
-                $findGroup->switchSilent();
-                $options['--silent-off'] = true;
-            } else if ($message['text'] == config('services.linebot.silent_on')
-            && !$findGroup->silent_mode) {
-                // 靜音 ON
-                $findGroup->switchSilent();
-                $options['--silent-on'] = true;
-            } else if ($findGroup->silent_mode) {
-                return;
-            }
+        switch ($sourceType) {
+            case static::SOURCE_TYPE_GROUP:
+                (new LineGroupService($event, $text, $params))->run();
+                break;
+
+            case static::SOURCE_TYPE_USER:
+                (new LineUserService($event, $text, $params))->run();
+                break;
+
+            default:
+                # code...
+                break;
         }
-
-        Artisan::call('line:bot:reply', $options);
     }
 
-    /**
-     * 群組設定
-     *
-     * @param mixed $event
-     * @return GroupConfig|null
-     */
-    private function groupConfig($event)
+    private function eventPostback($event)
     {
-        $source = $event['source'] ?? false;
+        $sourceType   = $event['source']['type'] ?? '';
+        $data = LineReplyService::decodeData($event['postback']['data']);
+        $option = '';
 
-        if (!$source || $source['type'] != static::SOURCE_TYPE_GROUP) {
-            return null;
+        if (isset($data['option'])) {
+            $option = $data['option'];
         }
 
-        $find = GroupConfig::where('group_id', $source['groupId'])->first();
+        // 會得到 replyToken, message
+        $params = [
+            'replyToken' => $event['replyToken'],
+            'data'       => $event['postback']['data'],
+        ];
 
-        if ($find == null) {
-            $find = new GroupConfig();
-            $find->group_id = $source['groupId'];
-            $find->save();
+        switch ($sourceType) {
+            case static::SOURCE_TYPE_GROUP:
+                (new LineGroupService($event, $option, $params))->run();
+                break;
+
+            case static::SOURCE_TYPE_USER:
+                (new LineUserService($event, $option, $params))->run();
+                break;
+
+            default:
+                # code...
+                break;
         }
-
-        return $find;
     }
 }
