@@ -213,7 +213,7 @@ class LineReplyService
             // 先建立 actions
             // PostbackTemplateActionBuilder
             // $option['text'] = displayText
-            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data']);
+            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
         }
 
         // ButtonTemplateBuilder
