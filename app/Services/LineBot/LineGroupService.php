@@ -9,14 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class LineGroupService extends BaseService implements BaseInterface
 {
-    // 通用
-    const OPTION_COMMON_APPLY_ADMIN    = 'apply_group_admin';
-    const OPTION_COMMON_APPLY_SIDEKICK = 'apply_group_sidekick';
+    // 一般成員
+    const OPTION_REGULAR_APPLY_ADMIN    = 'apply_group_admin';
+    const OPTION_REGULAR_APPLY_SIDEKICK = 'apply_group_sidekick';
 
     // 管理員相關
-    const OPTION_ADMIN_UPDATE_GROUP       = 'update_group';
-    const OPTION_ADMIN_BLE_APPLY_SIDEKICK = 'able_apply_group_sidekick'; // 開關小幫手的申請權限
+    const OPTION_ADMIN_UPDATE_GROUP = 'update_group';
+    const OPTION_BLE_APPLY_SIDEKICK = 'able_apply_group_sidekick'; // 開關小幫手的申請權限
 
+    // 通用
     const OPTION_SILENT_ON  = 'silent_on';
     const OPTION_SILENT_OFF = 'silent_off';
 
@@ -54,19 +55,27 @@ class LineGroupService extends BaseService implements BaseInterface
             switch ($this->trigger) {
                 case config('linebot.operation_list'):
                     // 依據身分顯示選項
+                    $userId     = $this->event['source']['userId'];
                     $group      = $this->groupConfig($this->groupId);
                     $groupAdmin = GroupAdmin::where('group_id', $group->id)
-                        ->where('is_sidekick', false)
+                        ->where('user_id', $userId)
                         ->first();
-                    $filter = ($groupAdmin != null && $groupAdmin->user_id == $this->event['source']['userId'])
+                    $filter = ($groupAdmin != null && $groupAdmin->user_id == $userId)
                     ? 'ADMIN_'
-                    : '';
+                    : 'REGULAR_';
                     $options = $this->getOptions($filter);
 
-                    // 已有管理員，移除申請的選項
-                    if ($filter == '' && $groupAdmin != null) {
-                        $index = array_search(static::OPTION_COMMON_APPLY_ADMIN, $options);
-                        unset($options[$index]);
+                    // 管理員
+                    if ($filter == 'ADMIN_' && !$groupAdmin->is_sidekick) {
+                        // 申請小幫手的選項
+                        $text = $group->need_sidekick
+                        ? trans("linebot.button.able_apply_group_sidekick_off")
+                        : trans("linebot.button.able_apply_group_sidekick");
+                        $options[] = [
+                            'label' => $text,
+                            'data'  => "option=" . static::OPTION_BLE_APPLY_SIDEKICK,
+                            'text'  => $text,
+                        ];
                     }
 
                     // 靜音模式
@@ -77,7 +86,7 @@ class LineGroupService extends BaseService implements BaseInterface
                         'text'  => trans("linebot.button.{$mode}"),
                     ];
 
-                    // API 限制(最多)四個選項
+                    // API 限制(最多)三個選項
                     (new LineReplyService())
                         ->setButtonList($options)
                         ->send($this->params['replyToken']);
@@ -150,22 +159,22 @@ class LineGroupService extends BaseService implements BaseInterface
                     $this->reply($options, 'line:group:info');
                     break;
 
-                case static::OPTION_COMMON_APPLY_ADMIN:
+                case static::OPTION_REGULAR_APPLY_ADMIN:
                     // 註冊群組的管理者
                     $this->registerAdmin();
                     break;
 
-                case static::OPTION_COMMON_APPLY_SIDEKICK:
+                case static::OPTION_REGULAR_APPLY_SIDEKICK:
                     // 註冊小幫手
                     $this->registerSidekick();
                     break;
 
-                case static::OPTION_ADMIN_BLE_APPLY_SIDEKICK:
+                case static::OPTION_BLE_APPLY_SIDEKICK:
                     // 申請小幫手的權限
                     $this->ableApplySidekick();
                     break;
 
-                case static::OPTION_ADMIN_SILENT_ON:
+                case static::OPTION_SILENT_ON:
                     // 靜音 ON
                     $config = $this->groupConfig($this->groupId);
 
@@ -182,7 +191,7 @@ class LineGroupService extends BaseService implements BaseInterface
                     $this->reply($options);
                     break;
 
-                case static::OPTION_ADMIN_SILENT_OFF:
+                case static::OPTION_SILENT_OFF:
                     // 靜音 OFF
                     $config = $this->groupConfig($this->groupId);
 
