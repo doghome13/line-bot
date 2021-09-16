@@ -7,7 +7,7 @@ use App\Models\GroupConfig;
 use Illuminate\Support\Facades\Artisan;
 use ReflectionClass;
 
-class BaseService
+class LineBaseService
 {
     protected $event;
     protected $trigger;
@@ -75,7 +75,7 @@ class BaseService
             if ($pass) {
                 $options[] = [
                     'label' => trans("linebot.button.{$option}"),
-                    'data'  => "option={$option}",
+                    'data'  => LineReplyService::POSTBACK_TRIGGER . "={$option}",
                     'text'  => trans("linebot.button.{$option}"),
                 ];
             }

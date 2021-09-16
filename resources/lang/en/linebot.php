@@ -12,5 +12,8 @@ return [
         'silent_off'                    => '靜音 OFF',
         // 個人相關
         'find_group'                    => '管理的群組',
+        // POSTBACK
+        'postback_confirm'              => '確定',
+        'postback_cancel'               => '取消',
     ],
 ];

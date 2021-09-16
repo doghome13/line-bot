@@ -7,7 +7,7 @@ use App\Models\GroupAdmin;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
-class LineGroupService extends BaseService implements BaseInterface
+class LineGroupService extends LineBaseService implements LineBaseInterface
 {
     // 一般成員
     const OPTION_REGULAR_APPLY_ADMIN    = 'apply_group_admin';
@@ -73,7 +73,7 @@ class LineGroupService extends BaseService implements BaseInterface
                         : trans("linebot.button.able_apply_group_sidekick");
                         $options[] = [
                             'label' => $text,
-                            'data'  => "option=" . static::OPTION_BLE_APPLY_SIDEKICK,
+                            'data'  => LineReplyService::POSTBACK_TRIGGER . "=" . static::OPTION_BLE_APPLY_SIDEKICK,
                             'text'  => $text,
                         ];
                     }
@@ -82,7 +82,7 @@ class LineGroupService extends BaseService implements BaseInterface
                     $mode      = $group->silent_mode ? static::OPTION_SILENT_OFF : static::OPTION_SILENT_ON;
                     $options[] = [
                         'label' => trans("linebot.button.{$mode}"),
-                        'data'  => "option={$mode}",
+                        'data'  => LineReplyService::POSTBACK_TRIGGER . "={$mode}",
                         'text'  => trans("linebot.button.{$mode}"),
                     ];
 

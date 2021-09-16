@@ -2,7 +2,7 @@
 
 namespace App\Services\LineBot;
 
-interface BaseInterface
+interface LineBaseInterface
 {
     public function run();
 }

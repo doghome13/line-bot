@@ -5,10 +5,15 @@ namespace App\Services\LineBot;
 use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
 
-class LineUserService extends BaseService implements BaseInterface
+class LineUserService extends LineBaseService implements LineBaseInterface
 {
     // 通用
     const OPTION_COMMON_FIND_GROUP = 'find_group';
+
+    // 管理者
+    const OPTION_ADMIN_REVIEW_SIDEKICK = 'review_sidekick';
+    const OPTION_ADMIN_REVIEW_CONFIRM  = 'review_sidekick_confirm';
+    const OPTION_ADMIN_REVIEW_CANCEL   = 'review_sidekick_cancal';
 
     /**
      * 用戶
@@ -59,8 +64,13 @@ class LineUserService extends BaseService implements BaseInterface
                     $this->findGroupByAdmin();
                     break;
 
-                default:
-                    // 預設是不回覆訊息
+                case static::OPTION_ADMIN_REVIEW_SIDEKICK:
+                    $this->reviewSidekickApply();
+                    break;
+
+                case static::OPTION_ADMIN_REVIEW_CONFIRM:
+                case static::OPTION_ADMIN_REVIEW_CANCEL:
+                    set_log($this->event);
                     break;
             }
 
@@ -92,9 +102,13 @@ class LineUserService extends BaseService implements BaseInterface
         $input = [];
 
         foreach ($groups as $group) {
+            $data = [
+                'id'                               => $group->id,
+                LineReplyService::POSTBACK_TRIGGER => static::OPTION_ADMIN_REVIEW_SIDEKICK,
+            ];
             $input[] = [
                 'label' => $group->name,
-                'data'  => "id={$group->id}",
+                'data'  => LineReplyService::encodeData($data),
                 'text'  => $group->name,
                 'img'   => $group->picture_url,
             ];
@@ -112,27 +126,43 @@ class LineUserService extends BaseService implements BaseInterface
      */
     private function reviewSidekickApply()
     {
+        // POSTBACK 回來的資料
+        $data = LineReplyService::decodeData($this->params['data']);
+
+        $group     = GroupConfig::find($data['id']);
         $sidekicks = GroupAdmin::where('is_sidekick', true)
             ->where('applied', true)
-            ->whereIn('group_id', function ($sub) {
-                // 主要管理者才有的權限
-                return $sub->select('group_id')
-                    ->from('group_admin')
-                    ->where('user_id', $this->userId)
-                    ->where('is_sidekick', false);
-            })
+            ->where('group_id', $group->id)
             ->get();
 
         if ($sidekicks->count() == 0) {
             return;
         }
 
-        $output = [];
+        // 回傳格式
+        $input = [];
 
         foreach ($sidekicks as $sidekick) {
-            $data = [
-                //
+            // 這邊及時拉個人資訊
+            $response = LineReplyService::getBot()->getProfile($sidekick->user_id);
+            $profile  = $response->isSucceeded ? $response->getJSONDecodedBody() : null;
+
+            $input[] = [
+                'img'     => $profile ? $profile['pictureUrl'] : 'Blocked User',
+                'label'   => $profile ? $profile['displayName'] : 'Blocked User',
+                'text'    => $group->name,
+                'actions' => [
+                    LineReplyService::POSTBACK_CONFIRM => static::OPTION_ADMIN_REVIEW_CONFIRM,
+                    LineReplyService::POSTBACK_CANCEL  => static::OPTION_ADMIN_REVIEW_CANCEL,
+                ],
+                'data'    => [
+                    'id' => $sidekick->id,
+                ],
             ];
         }
+
+        (new LineReplyService())
+            ->setCarousel($input)
+            ->send($this->params['replyToken']);
     }
 }

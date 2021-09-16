@@ -101,8 +101,8 @@ class LineBotService
         $data = LineReplyService::decodeData($event['postback']['data']);
         $option = '';
 
-        if (isset($data['option'])) {
-            $option = $data['option'];
+        if (isset($data[LineReplyService::POSTBACK_TRIGGER])) {
+            $option = $data[LineReplyService::POSTBACK_TRIGGER];
         }
 
         // 會得到 replyToken, message
