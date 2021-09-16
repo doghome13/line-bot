@@ -212,7 +212,8 @@ class LineReplyService
         foreach ($options as $option) {
             // 先建立 actions
             // PostbackTemplateActionBuilder
-            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
+            // $option['text'] = displayText
+            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data']);
         }
 
         // ButtonTemplateBuilder

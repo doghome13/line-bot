@@ -59,15 +59,20 @@ class BaseService
     /**
      * get options
      *
+     * @param string $filter 指定篩選條件
      * @return array
      */
-    public function getOptions()
+    public function getOptions($filter = '')
     {
         $reflectionClass = new ReflectionClass(static::class);
         $options         = [];
 
         foreach ($reflectionClass->getConstants() as $key => $option) {
-            if (starts_with($key, 'OPTION_')) {
+            $pass = $filter != ''
+            ? (starts_with($key, "OPTION_{$filter}") || starts_with($key, "OPTION_COMMON_"))
+            : starts_with($key, "OPTION_COMMON_");
+
+            if ($pass) {
                 $options[] = [
                     'label' => trans("linebot.button.{$option}"),
                     'data'  => "option={$option}",

@@ -7,7 +7,8 @@ use App\Models\GroupConfig;
 
 class LineUserService extends BaseService implements BaseInterface
 {
-    const OPTION_FIND_GROUP = 'find_group';
+    // 通用
+    const OPTION_COMMON_FIND_GROUP = 'find_group';
 
     /**
      * 用戶
@@ -53,7 +54,7 @@ class LineUserService extends BaseService implements BaseInterface
 
         if ($this->eventType == LineBotService::EVENT_POSTBACK) {
             switch ($this->trigger) {
-                case static::OPTION_FIND_GROUP:
+                case static::OPTION_COMMON_FIND_GROUP:
                     // 審核(所有)小幫手的申請，先列出管理的群組
                     $this->findGroupByAdmin();
                     break;

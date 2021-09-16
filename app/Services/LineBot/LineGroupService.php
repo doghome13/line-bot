@@ -9,10 +9,16 @@ use Illuminate\Support\Facades\DB;
 
 class LineGroupService extends BaseService implements BaseInterface
 {
-    const OPTION_UPDATE_GROUP = 'update_group';
-    const OPTION_APPLY_ADMIN = 'apply_group_admin';
-    const OPTION_APPLY_SIDEKICK = 'apply_group_sidekick';
-    const OPTION_ABLE_APPLY_SIDEKICK = 'able_apply_group_sidekick'; // 開關小幫手的申請權限
+    // 通用
+    const OPTION_COMMON_APPLY_ADMIN    = 'apply_group_admin';
+    const OPTION_COMMON_APPLY_SIDEKICK = 'apply_group_sidekick';
+
+    // 管理員相關
+    const OPTION_ADMIN_UPDATE_GROUP       = 'update_group';
+    const OPTION_ADMIN_BLE_APPLY_SIDEKICK = 'able_apply_group_sidekick'; // 開關小幫手的申請權限
+
+    const OPTION_SILENT_ON  = 'silent_on';
+    const OPTION_SILENT_OFF = 'silent_off';
 
     /**
      * 群組事件
@@ -44,69 +50,74 @@ class LineGroupService extends BaseService implements BaseInterface
             return;
         }
 
-        switch ($this->trigger) {
-            case config('linebot.update_group'):
-                // 更新群組資訊
-                $options = [
-                    'groupId'    => $this->groupId,
-                    'replyToken' => $this->event['replyToken'],
-                    'msg'        => $this->eventType == LineBotService::EVENT_JOIN ? '朕來了' : '好的',
-                ];
+        if ($this->eventType == LineBotService::EVENT_MESSAGE) {
+            switch ($this->trigger) {
+                case config('linebot.operation_list'):
+                    // 依據身分顯示選項
+                    $group      = $this->groupConfig($this->groupId);
+                    $groupAdmin = GroupAdmin::where('group_id', $group->id)
+                        ->where('is_sidekick', false)
+                        ->first();
+                    $filter = ($groupAdmin != null && $groupAdmin->user_id == $this->event['source']['userId'])
+                    ? 'ADMIN_'
+                    : '';
+                    $options = $this->getOptions($filter);
 
-                $this->reply($options, 'line:group:info');
-                break;
+                    // 已有管理員，移除申請的選項
+                    if ($filter == '' && $groupAdmin != null) {
+                        $index = array_search(static::OPTION_COMMON_APPLY_ADMIN, $options);
+                        unset($options[$index]);
+                    }
 
-            case config('linebot.claim_group_admin'):
-                // 註冊群組的管理者
-                $this->registerAdmin();
-                break;
+                    // 靜音模式
+                    $mode      = $group->silent_mode ? static::OPTION_SILENT_OFF : static::OPTION_SILENT_ON;
+                    $options[] = [
+                        'label' => trans("linebot.button.{$mode}"),
+                        'data'  => "option={$mode}",
+                        'text'  => trans("linebot.button.{$mode}"),
+                    ];
 
-            case config('linebot.claim_group_sidekick'):
-                // 註冊小幫手
-                $this->registerSidekick();
-                break;
+                    // API 限制(最多)四個選項
+                    (new LineReplyService())
+                        ->setButtonList($options)
+                        ->send($this->params['replyToken']);
+                    break;
 
-            case config('linebot.able_apply_group_sidekick'):
-                // 申請小幫手的權限
-                $this->ableApplySidekick();
-                break;
+                case config('linebot.silent_on'):
+                    // 靜音 ON
+                    $config = $this->groupConfig($this->groupId);
 
-            case config('linebot.silent_on'):
-                // 靜音 ON
-                $config = $this->groupConfig($this->groupId);
+                    if ($config == null || $config->silent_mode) {
+                        return;
+                    }
 
-                if ($config == null || $config->silent_mode) {
-                    return;
-                }
+                    $config->switchSilent();
+                    $options = [
+                        'replyToken'  => $this->event['replyToken'],
+                        'replyMsg'    => '',
+                        '--silent-on' => true,
+                    ];
+                    $this->reply($options);
+                    break;
 
-                $config->switchSilent();
-                $options = [
-                    'replyToken'  => $this->event['replyToken'],
-                    'replyMsg'    => '',
-                    '--silent-on' => true,
-                ];
-                $this->reply($options);
-                break;
+                case config('linebot.silent_off'):
+                    // 靜音 OFF
+                    $config = $this->groupConfig($this->groupId);
 
-            case config('linebot.silent_off'):
-                // 靜音 OFF
-                $config = $this->groupConfig($this->groupId);
+                    if ($config == null || !$config->silent_mode) {
+                        return;
+                    }
 
-                if ($config == null || !$config->silent_mode) {
-                    return;
-                }
+                    $config->switchSilent();
+                    $options = [
+                        'replyToken'   => $this->event['replyToken'],
+                        'replyMsg'     => '',
+                        '--silent-off' => true,
+                    ];
+                    $this->reply($options);
+                    break;
 
-                $config->switchSilent();
-                $options = [
-                    'replyToken'   => $this->event['replyToken'],
-                    'replyMsg'     => '',
-                    '--silent-off' => true,
-                ];
-                $this->reply($options);
-                break;
-
-            default:
-                if ($this->eventType == LineBotService::EVENT_MESSAGE) {
+                default:
                     $config = $this->groupConfig($this->groupId);
 
                     if ($config == null || $config->silent_mode) {
@@ -120,8 +131,74 @@ class LineGroupService extends BaseService implements BaseInterface
                         '--rand-msg' => true,
                     ];
                     $this->reply($options);
-                }
-                break;
+                    break;
+            }
+
+            return;
+        }
+
+        if ($this->eventType == LineBotService::EVENT_POSTBACK) {
+            switch ($this->trigger) {
+                case static::OPTION_ADMIN_UPDATE_GROUP:
+                    // 更新群組資訊
+                    $options = [
+                        'groupId'    => $this->groupId,
+                        'replyToken' => $this->event['replyToken'],
+                        'msg'        => $this->eventType == LineBotService::EVENT_JOIN ? '朕來了' : '好的',
+                    ];
+
+                    $this->reply($options, 'line:group:info');
+                    break;
+
+                case static::OPTION_COMMON_APPLY_ADMIN:
+                    // 註冊群組的管理者
+                    $this->registerAdmin();
+                    break;
+
+                case static::OPTION_COMMON_APPLY_SIDEKICK:
+                    // 註冊小幫手
+                    $this->registerSidekick();
+                    break;
+
+                case static::OPTION_ADMIN_BLE_APPLY_SIDEKICK:
+                    // 申請小幫手的權限
+                    $this->ableApplySidekick();
+                    break;
+
+                case static::OPTION_ADMIN_SILENT_ON:
+                    // 靜音 ON
+                    $config = $this->groupConfig($this->groupId);
+
+                    if ($config == null || $config->silent_mode) {
+                        return;
+                    }
+
+                    $config->switchSilent();
+                    $options = [
+                        'replyToken'  => $this->event['replyToken'],
+                        'replyMsg'    => '',
+                        '--silent-on' => true,
+                    ];
+                    $this->reply($options);
+                    break;
+
+                case static::OPTION_ADMIN_SILENT_OFF:
+                    // 靜音 OFF
+                    $config = $this->groupConfig($this->groupId);
+
+                    if ($config == null || !$config->silent_mode) {
+                        return;
+                    }
+
+                    $config->switchSilent();
+                    $options = [
+                        'replyToken'   => $this->event['replyToken'],
+                        'replyMsg'     => '',
+                        '--silent-off' => true,
+                    ];
+                    $this->reply($options);
+                    break;
+            }
         }
     }
 

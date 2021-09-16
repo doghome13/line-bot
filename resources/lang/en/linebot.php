@@ -8,7 +8,9 @@ return [
         'apply_group_sidekick'          => '當小奴才',
         'able_apply_group_sidekick'     => '開放申請奴才',
         'able_apply_group_sidekick_off' => '關閉申請奴才',
+        'silent_on'                     => '靜音 ON',
+        'silent_off'                    => '靜音 OFF',
         // 個人相關
-        'find_group' => '管理的群組',
+        'find_group'                    => '管理的群組',
     ],
 ];

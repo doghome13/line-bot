@@ -38,7 +38,7 @@ class LineBotService
 
                 case static::EVENT_JOIN:
                     // 第一次加入群組
-                    (new LineGroupService($event, config('linebot.update_group')))->run();
+                    (new LineGroupService($event, LineGroupService::OPTION_ADMIN_UPDATE_GROUP))->run();
                     break;
 
                 case static::EVENT_MEMBER_LEFT:
