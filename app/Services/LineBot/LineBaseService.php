@@ -119,4 +119,22 @@ class LineBaseService
             ->where('is_sidekick', false)
             ->first();
     }
+
+    /**
+     * 檢查管理員身分
+     *
+     * @param string $userId
+     * @param integer $groupId // group_config.id
+     * @return bool
+     */
+    public static function isAdmin(string $userId, int $groupId)
+    {
+        $admin = GroupAdmin::selectRaw('COUNT(1) AS count')
+            ->where('user_id', $userId)
+            ->where('is_sidekick', false)
+            ->where('group_id', $groupId)
+            ->first();
+
+        return $admin->count == 1;
+    }
 }

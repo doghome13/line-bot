@@ -344,6 +344,10 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
             $check = $this->groupSidekick($this->groupId, $userId);
 
             if ($check != null) {
+                // 檢查是否為 follower
+                $profile = LineReplyService::getBot()->getProfile($userId);
+                set_log($profile);
+
                 // group_admin.applied 來驗證申請是否通過
                 $msg     = $check->applied ? '審核中' : '你這奴才';
                 $options = [

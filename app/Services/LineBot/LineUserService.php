@@ -69,7 +69,11 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                     break;
 
                 case static::OPTION_ADMIN_REVIEW_CONFIRM:
+                    $this->reviewSidekickApproved();
+                    break;
+
                 case static::OPTION_ADMIN_REVIEW_CANCEL:
+                    $this->reviewSidekickDisapproved();
                     break;
             }
 
@@ -125,10 +129,15 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      */
     private function reviewSidekickApply()
     {
-        // POSTBACK 回來的資料
-        $data = $this->params['data'];
 
-        $group     = GroupConfig::find($data['id']);
+        $data  = $this->params['data']; // POSTBACK 回來的資料
+        $group = GroupConfig::find($data['id']);
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $group->id)) {
+            return;
+        }
+
         $sidekicks = GroupAdmin::where('is_sidekick', true)
             ->where('applied', true)
             ->where('group_id', $group->id)
@@ -143,11 +152,12 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
         foreach ($sidekicks as $sidekick) {
             // 這邊及時拉個人資訊
-            $response = LineReplyService::getBot()->getProfile($sidekick->user_id);
-            $profile  = $response->isSucceeded ? $response->getJSONDecodedBody() : null;
+            // $response = LineReplyService::getBot()->getProfile($sidekick->user_id);
+            // $profile  = $response ? $response->getJSONDecodedBody() : null;
+            $profile = null;
 
             $input[] = [
-                'img'     => $profile ? $profile['pictureUrl'] : 'Blocked User',
+                'img'     => $profile ? $profile['pictureUrl'] : null,
                 'label'   => $profile ? $profile['displayName'] : 'Blocked User',
                 'text'    => $group->name,
                 'actions' => [
@@ -163,5 +173,62 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         (new LineReplyService())
             ->setCarousel($input)
             ->send($this->params['replyToken']);
+    }
+
+    /**
+     * 審核小幫手通過
+     */
+    private function reviewSidekickApproved()
+    {
+        $data  = $this->params['data']; // POSTBACK 回來的資料
+        $group = GroupConfig::find($data['id']);
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $group->id)) {
+            return;
+        }
+
+        $sidekick = GroupAdmin::find($data['id']);
+
+        if ($sidekick == null) {
+            return;
+        }
+
+        $sidekick->applied = false;
+        $sidekick->save();
+
+        $options = [
+            'replyToken' => $this->event['replyToken'],
+            'replyMsg'   => 'done!',
+        ];
+        $this->reply($options);
+    }
+
+    /**
+     * 審核小幫手不通過
+     */
+    private function reviewSidekickDisapproved()
+    {
+        $data  = $this->params['data']; // POSTBACK 回來的資料
+        $group = GroupConfig::find($data['id']);
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $group->id)) {
+            return;
+        }
+
+        $sidekick = GroupAdmin::find($data['id']);
+
+        if ($sidekick == null) {
+            return;
+        }
+
+        $sidekick->delete();
+
+        $options = [
+            'replyToken' => $this->event['replyToken'],
+            'replyMsg'   => 'done!',
+        ];
+        $this->reply($options);
     }
 }

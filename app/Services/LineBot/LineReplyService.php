@@ -258,10 +258,11 @@ class LineReplyService
             $actions = [];
 
             foreach ($option['actions'] as $key => $action) {
-                $label                                    = trans("linebot.button.postback_{$key}");
-                $option['data'][static::POSTBACK_TRIGGER] = $action;
-                $option['data']                           = $this->encodeData($option['data']);
-                $actions[]                                = new PostbackTemplateActionBuilder($label, $option['data'], $label);
+                $label                          = trans("linebot.button.postback_{$key}");
+                $data                           = $option['data'];
+                $data[static::POSTBACK_TRIGGER] = $action;
+                $data                           = $this->encodeData($data);
+                $actions[]                      = new PostbackTemplateActionBuilder($label, $data, $label);
             }
 
             // CarouselColumnTemplateBuilder
