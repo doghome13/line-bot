@@ -70,7 +70,6 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
                 case static::OPTION_ADMIN_REVIEW_CONFIRM:
                 case static::OPTION_ADMIN_REVIEW_CANCEL:
-                    set_log($this->event);
                     break;
             }
 
@@ -127,7 +126,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     private function reviewSidekickApply()
     {
         // POSTBACK 回來的資料
-        $data = LineReplyService::decodeData($this->params['data']);
+        $data = $this->params['data'];
 
         $group     = GroupConfig::find($data['id']);
         $sidekicks = GroupAdmin::where('is_sidekick', true)

@@ -289,6 +289,7 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
                 $find->user_id     = $userId;
                 $find->group_id    = $group->id;
                 $find->is_sidekick = false;
+                $find->applied     = false;
                 // $find->applied_at  = Carbon::now();
                 $find->save();
 
@@ -454,11 +455,11 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
             $group->need_sidekick = false;
             $group->save();
 
-            // 其他申請未通過則刪除
-            GroupAdmin::where('group_id', $group->id)
-                ->where('is_sidekick', true)
-                ->where('applied', true)
-                ->delete();
+            // // 其他申請未通過則刪除
+            // GroupAdmin::where('group_id', $group->id)
+            //     ->where('is_sidekick', true)
+            //     ->where('applied', true)
+            //     ->delete();
             DB::commit();
 
             $options = [

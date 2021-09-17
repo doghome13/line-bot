@@ -108,7 +108,7 @@ class LineBotService
         // 會得到 replyToken, message
         $params = [
             'replyToken' => $event['replyToken'],
-            'data'       => $event['postback']['data'],
+            'data'       => $data,
         ];
 
         switch ($sourceType) {
