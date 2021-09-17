@@ -144,6 +144,11 @@ class LineUserService extends LineBaseService implements LineBaseInterface
             ->get();
 
         if ($sidekicks->count() == 0) {
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => '沒人申請!',
+            ];
+            $this->reply($options);
             return;
         }
 
@@ -180,17 +185,15 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      */
     private function reviewSidekickApproved()
     {
-        $data  = $this->params['data']; // POSTBACK 回來的資料
-        $group = GroupConfig::find($data['id']);
-
-        // 驗證管理員身分
-        if (!$this->isAdmin($this->userId, $group->id)) {
-            return;
-        }
-
+        $data     = $this->params['data']; // POSTBACK 回來的資料
         $sidekick = GroupAdmin::find($data['id']);
 
         if ($sidekick == null) {
+            return;
+        }
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $sidekick->group_id)) {
             return;
         }
 
@@ -209,17 +212,15 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      */
     private function reviewSidekickDisapproved()
     {
-        $data  = $this->params['data']; // POSTBACK 回來的資料
-        $group = GroupConfig::find($data['id']);
-
-        // 驗證管理員身分
-        if (!$this->isAdmin($this->userId, $group->id)) {
-            return;
-        }
-
+        $data     = $this->params['data']; // POSTBACK 回來的資料
         $sidekick = GroupAdmin::find($data['id']);
 
         if ($sidekick == null) {
+            return;
+        }
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $sidekick->group_id)) {
             return;
         }
 
