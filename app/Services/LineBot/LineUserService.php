@@ -156,14 +156,9 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         $input = [];
 
         foreach ($sidekicks as $sidekick) {
-            // 這邊及時拉個人資訊
-            // $response = LineReplyService::getBot()->getProfile($sidekick->user_id);
-            // $profile  = $response ? $response->getJSONDecodedBody() : null;
-            $profile = null;
-
             $input[] = [
-                'img'     => $profile ? $profile['pictureUrl'] : null,
-                'label'   => $profile ? $profile['displayName'] : 'Blocked User',
+                'img'     => $sidekick->picture_url ?? null,
+                'label'   => $sidekick->name ?? 'Blocked User',
                 'text'    => $group->name,
                 'actions' => [
                     LineReplyService::POSTBACK_CONFIRM => static::OPTION_ADMIN_REVIEW_CONFIRM,
