@@ -114,9 +114,10 @@ class LineReplyService
      * @param mixed $content
      * @param bool $isPost // api method
      * @param string $class
+     * @param bool $forceOutput // 強制回傳結果
      * @return object
      */
-    public static function curl(string $url, $content, $isPost = true, $className = '')
+    public static function curl(string $url, $content, $isPost = true, $className = '', $forceOutput = false)
     {
         $curlHeader = [
             'Content-Type:application/json',
@@ -140,7 +141,7 @@ class LineReplyService
         curl_close($ch);
 
         // 報錯則不處理
-        if ($response === null || $reponseCode !== 200) {
+        if (!$forceOutput && ($response === null || $reponseCode !== 200)) {
             $errormsg = [
                 'curl error: ' . $reponseCode,
                 'class: ' . $className,

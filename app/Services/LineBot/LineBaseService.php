@@ -137,4 +137,17 @@ class LineBaseService
 
         return $admin->count == 1;
     }
+
+    /**
+     * fetch profile
+     *
+     * @param string $userId
+     * @return object
+     */
+    public static function getProfile($userId)
+    {
+        $url = "https://api.line.me/v2/bot/profile/{$userId}";
+
+        return LineReplyService::curl($url, '', false, static::class, true);
+    }
 }

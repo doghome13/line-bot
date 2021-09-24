@@ -280,7 +280,24 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
     {
         try {
             $userId = $this->event['source']['userId'];
-            $admin  = $this->groupAdmin($this->groupId);
+
+            // 檢查是否為 follower
+            $profile = $this->getProfile($userId);
+
+            // 回傳的 userId 為 null，表示未加機器人為好友
+            $follower = $profile->userId ?? null;
+
+            if ($follower == null) {
+                $msg     = '請先加我好友';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => $msg,
+                ];
+                $this->reply($options);
+                return;
+            }
+
+            $admin = $this->groupAdmin($this->groupId);
 
             // 註冊
             if ($admin == null) {
@@ -290,7 +307,8 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
                 $find->group_id    = $group->id;
                 $find->is_sidekick = false;
                 $find->applied     = false;
-                // $find->applied_at  = Carbon::now();
+                $find->name        = $follower->displayName;
+                $find->picture_url = $follower->pictureUrl;
                 $find->save();
 
                 $options = [
@@ -340,14 +358,26 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
         try {
             $userId = $this->event['source']['userId'];
 
+            // 檢查是否為 follower
+            $profile = $this->getProfile($userId);
+
+            // 回傳的 userId 為 null，表示未加機器人為好友
+            $follower = $profile->userId ?? null;
+
+            if ($follower == null) {
+                $msg     = '請先加我好友';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => $msg,
+                ];
+                $this->reply($options);
+                return;
+            }
+
             // 是否申請過
             $check = $this->groupSidekick($this->groupId, $userId);
 
             if ($check != null) {
-                // 檢查是否為 follower
-                $profile = LineReplyService::getBot()->getProfile($userId);
-                set_log($profile);
-
                 // group_admin.applied 來驗證申請是否通過
                 $msg     = $check->applied ? '審核中' : '你這奴才';
                 $options = [
@@ -402,6 +432,8 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
             $sidekick->group_id    = $group->id;
             $sidekick->is_sidekick = true;
             $sidekick->applied     = true;
+            $sidekick->name        = $follower->displayName;
+            $sidekick->picture_url = $follower->pictureUrl;
             $sidekick->save();
 
             $options = [
