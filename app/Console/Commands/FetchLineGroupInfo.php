@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Events\ThrowException;
-use App\Services\LineBot\BaseService;
+use App\Services\LineBot\LineBaseService;
 use App\Services\LineBot\LineReplyService;
 use Exception;
 use Illuminate\Console\Command;
@@ -52,7 +52,7 @@ class FetchLineGroupInfo extends Command
             $res = LineReplyService::curl($url, '', false, static::class);
 
             // 更新資訊
-            $groupConfig              = BaseService::groupConfig($groupId);
+            $groupConfig              = LineBaseService::groupConfig($groupId);
             $groupConfig->name        = $res->groupName;
             $groupConfig->picture_url = $res->pictureUrl;
             $groupConfig->save();
