@@ -15,6 +15,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     const OPTION_ADMIN_REVIEW_CONFIRM  = 'review_sidekick_confirm';
     const OPTION_ADMIN_REVIEW_CANCEL   = 'review_sidekick_cancal';
     const OPTION_ADMIN_LIST_SIDEKICK   = 'list_sidekick';
+    const OPTION_ADMIN_REMOVE_SIDEKICK = 'remove_sidekick';
 
     /**
      * 用戶
@@ -78,7 +79,11 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                     break;
 
                 case static::OPTION_ADMIN_LIST_SIDEKICK:
-                    $this->listSidekick();
+                    $this->listSidekicks();
+                    break;
+
+                case static::OPTION_ADMIN_REMOVE_SIDEKICK:
+                    $this->removeSidekick();
                     break;
 
                 default:
@@ -211,7 +216,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
         $options = [
             'replyToken' => $this->event['replyToken'],
-            'replyMsg'   => 'done!',
+            'replyMsg'   => trans('linebot.text.done'),
         ];
         $this->reply($options);
     }
@@ -239,7 +244,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
         $options = [
             'replyToken' => $this->event['replyToken'],
-            'replyMsg'   => 'done!',
+            'replyMsg'   => trans('linebot.text.done'),
         ];
         $this->reply($options);
     }
@@ -249,7 +254,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      *
      * @return void
      */
-    private function listSidekick()
+    private function listSidekicks()
     {
         $data  = $this->params['data']; // POSTBACK 回來的資料
         $group = GroupConfig::find($data['id']);
@@ -282,7 +287,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                 'label'   => $sidekick->name,
                 'text'    => $group->name,
                 'actions' => [
-                    LineReplyService::POSTBACK_REMOVE_SIDEKICK => 'testing',
+                    LineReplyService::POSTBACK_REMOVE_SIDEKICK => static::OPTION_ADMIN_REMOVE_SIDEKICK,
                 ],
                 'data'    => [
                     'id' => $sidekick->id,
@@ -293,5 +298,33 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         (new LineReplyService())
             ->setCarousel($input)
             ->send($this->params['replyToken']);
+    }
+
+    /**
+     * 移除小幫手
+     *
+     * @return void
+     */
+    private function removeSidekick()
+    {
+        $data     = $this->params['data']; // POSTBACK 回來的資料
+        $sidekick = GroupAdmin::find($data['id']);
+
+        if ($sidekick == null) {
+            return;
+        }
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $sidekick->group_id)) {
+            return;
+        }
+
+        $sidekick->delete();
+
+        $options = [
+            'replyToken' => $this->event['replyToken'],
+            'replyMsg'   => trans('linebot.text.done'),
+        ];
+        $this->reply($options);
     }
 }

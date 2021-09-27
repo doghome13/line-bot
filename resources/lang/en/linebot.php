@@ -4,6 +4,7 @@ return [
     'text'   => [
         'admin-menu' => '管理者的操作選單',
         'empty'      => '沒有資料',
+        'done'       => '完成!',
     ],
     'button' => [
         // 群組相關
