@@ -181,7 +181,9 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     private function reviewSidekickApproved()
     {
         $data     = $this->params['data']; // POSTBACK 回來的資料
-        $sidekick = GroupAdmin::find($data['id']);
+        $sidekick = GroupAdmin::where('id', $data['id'])
+            ->where('applied', true)
+            ->first();
 
         if ($sidekick == null) {
             return;
@@ -208,7 +210,9 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     private function reviewSidekickDisapproved()
     {
         $data     = $this->params['data']; // POSTBACK 回來的資料
-        $sidekick = GroupAdmin::find($data['id']);
+        $sidekick = GroupAdmin::where('id', $data['id'])
+            ->where('applied', true)
+            ->first();
 
         if ($sidekick == null) {
             return;
