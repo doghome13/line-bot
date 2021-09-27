@@ -24,9 +24,11 @@ class LineReplyService
     // LINE 訊息列表顯示的文字
     const TEMPLATE_LIST_DISPLAY = '喵喵喵喵喵喵';
 
-    const POSTBACK_CONFIRM = 'confirm';
-    const POSTBACK_CANCEL  = 'cancel';
-    const POSTBACK_TRIGGER = 'postback_trigger';
+    const POSTBACK_CONFIRM         = 'confirm';
+    const POSTBACK_CANCEL          = 'cancel';
+    const POSTBACK_TRIGGER         = 'postback_trigger';
+    const POSTBACK_REVIEW_SIDEKICK = 'review_sidekick';
+    const POSTBACK_MANAG_SIDEKICK  = 'manage_sidekick';
 
     /**
      * 訊息回覆

@@ -60,7 +60,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         if ($this->eventType == LineBotService::EVENT_POSTBACK) {
             switch ($this->trigger) {
                 case static::OPTION_COMMON_FIND_GROUP:
-                    // 審核(所有)小幫手的申請，先列出管理的群組
+                    // 先列出管理的群組
                     $this->findGroupByAdmin();
                     break;
 
@@ -105,20 +105,22 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         $input = [];
 
         foreach ($groups as $group) {
-            $data = [
-                'id'                               => $group->id,
-                LineReplyService::POSTBACK_TRIGGER => static::OPTION_ADMIN_REVIEW_SIDEKICK,
-            ];
             $input[] = [
-                'label' => $group->name,
-                'data'  => LineReplyService::encodeData($data),
-                'text'  => $group->name,
-                'img'   => $group->picture_url,
+                'img'     => $group->picture_url,
+                'label'   => $group->name,
+                'text'    => trans('linebot.text.admin-menu'),
+                'actions' => [
+                    LineReplyService::POSTBACK_REVIEW_SIDEKICK => static::OPTION_ADMIN_REVIEW_SIDEKICK,
+                    LineReplyService::POSTBACK_MANAG_SIDEKICK  => static::OPTION_ADMIN_REVIEW_SIDEKICK,
+                ],
+                'data'    => [
+                    'id' => $group->id,
+                ],
             ];
         }
 
         (new LineReplyService())
-            ->setImageCarousel($input)
+            ->setCarousel($input)
             ->send($this->params['replyToken']);
     }
 

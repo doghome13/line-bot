@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'text' => [
+        'admin-menu' => '管理者的操作選單',
+    ],
     'button' => [
         // 群組相關
         'update_group'                  => '更新資訊',
@@ -15,5 +18,7 @@ return [
         // POSTBACK
         'postback_confirm'              => '確定',
         'postback_cancel'               => '取消',
+        'postback_review_sidekick'      => '審核申請',
+        'postback_manage_sidekick'      => '管理小幫手',
     ],
 ];
