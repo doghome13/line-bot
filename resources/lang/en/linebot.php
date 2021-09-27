@@ -2,11 +2,12 @@
 
 return [
     'text'   => [
-        'admin-menu'  => '管理者的操作選單',
-        'empty'       => '沒有資料',
-        'done'        => '完成!',
-        'update-fail' => '更新失敗',
-        'blocked'     => '已被封鎖',
+        'admin-menu'    => '管理者的操作選單',
+        'sidekick-menu' => '小幫手的操作選單',
+        'empty'         => '沒有資料',
+        'done'          => '完成!',
+        'update-fail'   => '更新失敗',
+        'blocked'       => '已被封鎖',
     ],
     'button' => [
         // 群組相關

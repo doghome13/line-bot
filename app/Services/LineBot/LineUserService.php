@@ -111,35 +111,50 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      */
     private function findGroupByAdmin()
     {
-        $groups = GroupConfig::select(['id', 'name', 'picture_url'])
-            ->whereIn('id', function ($sub) {
-                return $sub->select('group_id')
-                    ->from('group_admin')
-                    ->where('is_sidekick', false)
-                    ->where('user_id', $this->userId);
+        $admins = GroupAdmin::where('user_id', $this->userId)
+            ->where(function ($query) {
+                // 管理員 / 審核通過
+                return $query->where('is_sidekick', false)
+                    ->orWhere('applied', false);
             })
+            ->with('group:id,name,picture_url')
             ->get();
 
-        if ($groups->count() == 0) {
+        if ($admins->count() == 0) {
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => trans('linebot.text.empty'),
+            ];
+            $this->reply($options);
             return;
         }
 
         // 回傳格式
         $input = [];
 
-        foreach ($groups as $group) {
-            $input[] = [
-                'img'     => $group->picture_url,
-                'label'   => $group->name,
-                'text'    => trans('linebot.text.admin-menu'),
-                'actions' => [
-                    LineReplyService::POSTBACK_REVIEW_SIDEKICK => static::OPTION_ADMIN_REVIEW_SIDEKICK,
-                    LineReplyService::POSTBACK_LIST_SIDEKICK   => static::OPTION_ADMIN_LIST_SIDEKICK,
-                ],
-                'data'    => [
-                    'id' => $group->id,
+        foreach ($admins as $admin) {
+            $data = [
+                'img'   => $admin->group->picture_url,
+                'label' => $admin->group->name,
+                'data'  => [
+                    'id' => $admin->group_id,
                 ],
             ];
+
+            if (!$admin->is_sidekick) {
+                $data['text']    = trans('linebot.text.admin-menu');
+                $data['actions'] = [
+                    LineReplyService::POSTBACK_REVIEW_SIDEKICK => static::OPTION_ADMIN_REVIEW_SIDEKICK,
+                    LineReplyService::POSTBACK_LIST_SIDEKICK   => static::OPTION_ADMIN_LIST_SIDEKICK,
+                ];
+            } else {
+                $data['text']    = trans('linebot.text.sidekick-menu');
+                $data['actions'] = [
+                    // 之後加功能
+                ];
+            }
+
+            $input[] = $data;
         }
 
         (new LineReplyService())
