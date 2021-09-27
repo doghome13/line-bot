@@ -307,8 +307,8 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
                 $find->group_id    = $group->id;
                 $find->is_sidekick = false;
                 $find->applied     = false;
-                $find->name        = $follower->displayName;
-                $find->picture_url = $follower->pictureUrl;
+                $find->name        = $profile->displayName;
+                $find->picture_url = $profile->pictureUrl;
                 $find->save();
 
                 $options = [
@@ -432,8 +432,8 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
             $sidekick->group_id    = $group->id;
             $sidekick->is_sidekick = true;
             $sidekick->applied     = true;
-            $sidekick->name        = $follower->displayName;
-            $sidekick->picture_url = $follower->pictureUrl;
+            $sidekick->name        = $profile->displayName;
+            $sidekick->picture_url = $profile->pictureUrl;
             $sidekick->save();
 
             $options = [
