@@ -28,7 +28,8 @@ class LineReplyService
     const POSTBACK_CANCEL          = 'cancel';
     const POSTBACK_TRIGGER         = 'postback_trigger';
     const POSTBACK_REVIEW_SIDEKICK = 'review_sidekick';
-    const POSTBACK_MANAG_SIDEKICK  = 'manage_sidekick';
+    const POSTBACK_LIST_SIDEKICK   = 'list_sidekick';
+    const POSTBACK_REMOVE_SIDEKICK = 'remove_sidekick';
 
     /**
      * 訊息回覆

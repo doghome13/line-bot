@@ -14,6 +14,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     const OPTION_ADMIN_REVIEW_SIDEKICK = 'review_sidekick';
     const OPTION_ADMIN_REVIEW_CONFIRM  = 'review_sidekick_confirm';
     const OPTION_ADMIN_REVIEW_CANCEL   = 'review_sidekick_cancal';
+    const OPTION_ADMIN_LIST_SIDEKICK   = 'list_sidekick';
 
     /**
      * 用戶
@@ -75,6 +76,16 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                 case static::OPTION_ADMIN_REVIEW_CANCEL:
                     $this->reviewSidekickDisapproved();
                     break;
+
+                case static::OPTION_ADMIN_LIST_SIDEKICK:
+                    $this->listSidekick();
+                    break;
+
+                default:
+                    if (config('app.debug')) {
+                        set_log($this->event);
+                    }
+                    break;
             }
 
             return;
@@ -111,7 +122,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                 'text'    => trans('linebot.text.admin-menu'),
                 'actions' => [
                     LineReplyService::POSTBACK_REVIEW_SIDEKICK => static::OPTION_ADMIN_REVIEW_SIDEKICK,
-                    LineReplyService::POSTBACK_MANAG_SIDEKICK  => static::OPTION_ADMIN_REVIEW_SIDEKICK,
+                    LineReplyService::POSTBACK_LIST_SIDEKICK   => static::OPTION_ADMIN_LIST_SIDEKICK,
                 ],
                 'data'    => [
                     'id' => $group->id,
@@ -131,7 +142,6 @@ class LineUserService extends LineBaseService implements LineBaseInterface
      */
     private function reviewSidekickApply()
     {
-
         $data  = $this->params['data']; // POSTBACK 回來的資料
         $group = GroupConfig::find($data['id']);
 
@@ -148,7 +158,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         if ($sidekicks->count() == 0) {
             $options = [
                 'replyToken' => $this->event['replyToken'],
-                'replyMsg'   => '沒人申請!',
+                'replyMsg'   => trans('linebot.text.empty'),
             ];
             $this->reply($options);
             return;
@@ -159,8 +169,8 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
         foreach ($sidekicks as $sidekick) {
             $input[] = [
-                'img'     => $sidekick->picture_url ?? null,
-                'label'   => $sidekick->name ?? 'Blocked User',
+                'img'     => $sidekick->picture_url,
+                'label'   => $sidekick->name,
                 'text'    => $group->name,
                 'actions' => [
                     LineReplyService::POSTBACK_CONFIRM => static::OPTION_ADMIN_REVIEW_CONFIRM,
@@ -232,5 +242,56 @@ class LineUserService extends LineBaseService implements LineBaseInterface
             'replyMsg'   => 'done!',
         ];
         $this->reply($options);
+    }
+
+    /**
+     * 該用戶所屬的小幫手
+     *
+     * @return void
+     */
+    private function listSidekick()
+    {
+        $data  = $this->params['data']; // POSTBACK 回來的資料
+        $group = GroupConfig::find($data['id']);
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $group->id)) {
+            return;
+        }
+
+        $sidekicks = GroupAdmin::where('is_sidekick', true)
+            ->where('applied', false)
+            ->where('group_id', $group->id)
+            ->get();
+
+        if ($sidekicks->count() == 0) {
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => trans('linebot.text.empty'),
+            ];
+            $this->reply($options);
+            return;
+        }
+
+        // 回傳格式
+        $input = [];
+
+        foreach ($sidekicks as $sidekick) {
+            $input[] = [
+                'img'     => $sidekick->picture_url,
+                'label'   => $sidekick->name,
+                'text'    => $group->name,
+                'actions' => [
+                    LineReplyService::POSTBACK_REMOVE_SIDEKICK => 'testing',
+                ],
+                'data'    => [
+                    'id' => $sidekick->id,
+                ],
+            ];
+        }
+
+        (new LineReplyService())
+            ->setCarousel($input)
+            ->send($this->params['replyToken']);
     }
 }
