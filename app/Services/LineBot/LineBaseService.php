@@ -7,7 +7,7 @@ use App\Models\GroupConfig;
 use Illuminate\Support\Facades\Artisan;
 use ReflectionClass;
 
-class BaseService
+class LineBaseService
 {
     protected $event;
     protected $trigger;
@@ -75,7 +75,7 @@ class BaseService
             if ($pass) {
                 $options[] = [
                     'label' => trans("linebot.button.{$option}"),
-                    'data'  => "option={$option}",
+                    'data'  => LineReplyService::POSTBACK_TRIGGER . "={$option}",
                     'text'  => trans("linebot.button.{$option}"),
                 ];
             }
@@ -118,5 +118,36 @@ class BaseService
         })
             ->where('is_sidekick', false)
             ->first();
+    }
+
+    /**
+     * 檢查管理員身分
+     *
+     * @param string $userId
+     * @param integer $groupId // group_config.id
+     * @return bool
+     */
+    public static function isAdmin(string $userId, int $groupId)
+    {
+        $admin = GroupAdmin::selectRaw('COUNT(1) AS count')
+            ->where('user_id', $userId)
+            ->where('is_sidekick', false)
+            ->where('group_id', $groupId)
+            ->first();
+
+        return $admin->count == 1;
+    }
+
+    /**
+     * fetch profile
+     *
+     * @param string $userId
+     * @return object
+     */
+    public static function getProfile($userId)
+    {
+        $url = "https://api.line.me/v2/bot/profile/{$userId}";
+
+        return LineReplyService::curl($url, '', false, static::class, true);
     }
 }

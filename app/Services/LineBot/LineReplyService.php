@@ -7,6 +7,8 @@ use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 use LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateBuilder\ButtonTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\CarouselColumnTemplateBuilder;
+use LINE\LINEBot\MessageBuilder\TemplateBuilder\CarouselTemplateBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselColumnTemplateBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateBuilder\ImageCarouselTemplateBuilder;
 use LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
@@ -15,6 +17,21 @@ use LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder;
 
 class LineReplyService
 {
+    // 樣板標題
+    const TEMPLATE_TITLE = '今晚你想來點什麼';
+    // 樣版補充文字
+    const TEMPLATE_TEXT = '除了後空翻';
+    // LINE 訊息列表顯示的文字
+    const TEMPLATE_LIST_DISPLAY = '喵喵喵喵喵喵';
+
+    const POSTBACK_CONFIRM         = 'confirm';
+    const POSTBACK_CANCEL          = 'cancel';
+    const POSTBACK_TRIGGER         = 'postback_trigger';
+    const POSTBACK_REVIEW_SIDEKICK = 'review_sidekick';
+    const POSTBACK_LIST_SIDEKICK   = 'list_sidekick';
+    const POSTBACK_REMOVE_SIDEKICK = 'remove_sidekick';
+    const POSTBACK_UPDATE_SIDEKICK = 'update_sidekick';
+
     /**
      * 訊息回覆
      *
@@ -101,9 +118,10 @@ class LineReplyService
      * @param mixed $content
      * @param bool $isPost // api method
      * @param string $class
+     * @param bool $forceOutput // 強制回傳結果
      * @return object
      */
-    public static function curl(string $url, $content, $isPost = true, $className = '')
+    public static function curl(string $url, $content, $isPost = true, $className = '', $forceOutput = false)
     {
         $curlHeader = [
             'Content-Type:application/json',
@@ -127,7 +145,7 @@ class LineReplyService
         curl_close($ch);
 
         // 報錯則不處理
-        if ($response === null || $reponseCode !== 200) {
+        if (!$forceOutput && ($response === null || $reponseCode !== 200)) {
             $errormsg = [
                 'curl error: ' . $reponseCode,
                 'class: ' . $className,
@@ -180,21 +198,21 @@ class LineReplyService
      */
     public function setImageCarousel(array $options)
     {
-        $userTemplate = [];
+        $template = [];
 
         foreach ($options as $option) {
             // 先建立 actions
             $action = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
 
             // ImageCarouselColumnTemplateBuilder
-            $userTemplate[] = new ImageCarouselColumnTemplateBuilder($option['img'], $action);
+            $template[] = new ImageCarouselColumnTemplateBuilder($option['img'], $action);
         }
 
         // ImageCarouselTemplateBuilder
-        $columnTemplate = new ImageCarouselTemplateBuilder($userTemplate);
+        $columnTemplate = new ImageCarouselTemplateBuilder($template);
 
         // TemplateMessageBuilder
-        $this->messageBuilder[] = new TemplateMessageBuilder('本裝置不能使用', $columnTemplate);
+        $this->messageBuilder[] = new TemplateMessageBuilder(static::TEMPLATE_LIST_DISPLAY, $columnTemplate);
 
         return $this;
     }
@@ -205,7 +223,7 @@ class LineReplyService
      * @param array $options
      * @return $this
      */
-    public function setButtonList(array $options)
+    public function setButtonList(array $options, $title = null, $text = null)
     {
         $buttonActions = [];
 
@@ -213,19 +231,59 @@ class LineReplyService
             // 先建立 actions
             // PostbackTemplateActionBuilder
             // $option['text'] = displayText
-            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data']);
+            $buttonActions[] = new PostbackTemplateActionBuilder($option['label'], $option['data'], $option['text']);
         }
 
         // ButtonTemplateBuilder
         $template = new ButtonTemplateBuilder(
-            '今晚你想來點什麼',
-            '除了後空翻',
+            $title ?? static::TEMPLATE_TITLE,
+            $text ?? static::TEMPLATE_TEXT,
             null,
             $buttonActions
         );
 
         // TemplateMessageBuilder
-        $this->messageBuilder[] = new TemplateMessageBuilder('喵喵喵喵喵喵', $template);
+        $this->messageBuilder[] = new TemplateMessageBuilder(static::TEMPLATE_LIST_DISPLAY, $template);
+
+        return $this;
+    }
+
+    /**
+     * 多選項樣板
+     *
+     * @param array $options
+     * @return $this
+     */
+    public function setCarousel(array $options)
+    {
+        $template = [];
+
+        foreach ($options as $option) {
+            // 先建立 actions
+            $actions = [];
+
+            foreach ($option['actions'] as $key => $action) {
+                $label                          = trans("linebot.button.postback_{$key}");
+                $data                           = $option['data'];
+                $data[static::POSTBACK_TRIGGER] = $action;
+                $data                           = $this->encodeData($data);
+                $actions[]                      = new PostbackTemplateActionBuilder($label, $data, $label);
+            }
+
+            // CarouselColumnTemplateBuilder
+            $template[] = new CarouselColumnTemplateBuilder(
+                $option['label'],
+                $option['text'],
+                $option['img'],
+                $actions
+            );
+        }
+
+        // CarouselTemplateBuilder
+        $columnTemplate = new CarouselTemplateBuilder($template);
+
+        // TemplateMessageBuilder
+        $this->messageBuilder[] = new TemplateMessageBuilder(static::TEMPLATE_LIST_DISPLAY, $columnTemplate);
 
         return $this;
     }
@@ -268,8 +326,7 @@ class LineReplyService
     {
         $output = [];
 
-        foreach ($params as $key => $param)
-        {
+        foreach ($params as $key => $param) {
             $output[] = "{$key}={$param}";
         }
 
@@ -283,7 +340,7 @@ class LineReplyService
         $params = is_array($params) ? $params : [$params];
 
         foreach ($params as $param) {
-            $split = explode('=', $param);
+            $split             = explode('=', $param);
             $output[$split[0]] = $split[1];
         }
 

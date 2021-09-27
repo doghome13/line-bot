@@ -7,7 +7,7 @@ use App\Models\GroupAdmin;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
-class LineGroupService extends BaseService implements BaseInterface
+class LineGroupService extends LineBaseService implements LineBaseInterface
 {
     // 一般成員
     const OPTION_REGULAR_APPLY_ADMIN    = 'apply_group_admin';
@@ -73,7 +73,7 @@ class LineGroupService extends BaseService implements BaseInterface
                         : trans("linebot.button.able_apply_group_sidekick");
                         $options[] = [
                             'label' => $text,
-                            'data'  => "option=" . static::OPTION_BLE_APPLY_SIDEKICK,
+                            'data'  => LineReplyService::POSTBACK_TRIGGER . "=" . static::OPTION_BLE_APPLY_SIDEKICK,
                             'text'  => $text,
                         ];
                     }
@@ -82,7 +82,7 @@ class LineGroupService extends BaseService implements BaseInterface
                     $mode      = $group->silent_mode ? static::OPTION_SILENT_OFF : static::OPTION_SILENT_ON;
                     $options[] = [
                         'label' => trans("linebot.button.{$mode}"),
-                        'data'  => "option={$mode}",
+                        'data'  => LineReplyService::POSTBACK_TRIGGER . "={$mode}",
                         'text'  => trans("linebot.button.{$mode}"),
                     ];
 
@@ -280,7 +280,24 @@ class LineGroupService extends BaseService implements BaseInterface
     {
         try {
             $userId = $this->event['source']['userId'];
-            $admin  = $this->groupAdmin($this->groupId);
+
+            // 檢查是否為 follower
+            $profile = $this->getProfile($userId);
+
+            // 回傳的 userId 為 null，表示未加機器人為好友
+            $follower = $profile->userId ?? null;
+
+            if ($follower == null) {
+                $msg     = '請先加我好友';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => $msg,
+                ];
+                $this->reply($options);
+                return;
+            }
+
+            $admin = $this->groupAdmin($this->groupId);
 
             // 註冊
             if ($admin == null) {
@@ -289,7 +306,9 @@ class LineGroupService extends BaseService implements BaseInterface
                 $find->user_id     = $userId;
                 $find->group_id    = $group->id;
                 $find->is_sidekick = false;
-                // $find->applied_at  = Carbon::now();
+                $find->applied     = false;
+                $find->name        = $profile->displayName;
+                $find->picture_url = $profile->pictureUrl;
                 $find->save();
 
                 $options = [
@@ -338,6 +357,22 @@ class LineGroupService extends BaseService implements BaseInterface
     {
         try {
             $userId = $this->event['source']['userId'];
+
+            // 檢查是否為 follower
+            $profile = $this->getProfile($userId);
+
+            // 回傳的 userId 為 null，表示未加機器人為好友
+            $follower = $profile->userId ?? null;
+
+            if ($follower == null) {
+                $msg     = '請先加我好友';
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => $msg,
+                ];
+                $this->reply($options);
+                return;
+            }
 
             // 是否申請過
             $check = $this->groupSidekick($this->groupId, $userId);
@@ -397,6 +432,8 @@ class LineGroupService extends BaseService implements BaseInterface
             $sidekick->group_id    = $group->id;
             $sidekick->is_sidekick = true;
             $sidekick->applied     = true;
+            $sidekick->name        = $profile->displayName;
+            $sidekick->picture_url = $profile->pictureUrl;
             $sidekick->save();
 
             $options = [
@@ -454,11 +491,11 @@ class LineGroupService extends BaseService implements BaseInterface
             $group->need_sidekick = false;
             $group->save();
 
-            // 其他申請未通過則刪除
-            GroupAdmin::where('group_id', $group->id)
-                ->where('is_sidekick', true)
-                ->where('applied', true)
-                ->delete();
+            // // 其他申請未通過則刪除
+            // GroupAdmin::where('group_id', $group->id)
+            //     ->where('is_sidekick', true)
+            //     ->where('applied', true)
+            //     ->delete();
             DB::commit();
 
             $options = [
