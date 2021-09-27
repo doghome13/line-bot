@@ -2,9 +2,11 @@
 
 return [
     'text'   => [
-        'admin-menu' => '管理者的操作選單',
-        'empty'      => '沒有資料',
-        'done'       => '完成!',
+        'admin-menu'  => '管理者的操作選單',
+        'empty'       => '沒有資料',
+        'done'        => '完成!',
+        'update-fail' => '更新失敗',
+        'blocked'     => '已被封鎖',
     ],
     'button' => [
         // 群組相關
@@ -23,5 +25,6 @@ return [
         'postback_review_sidekick'      => '審核申請',
         'postback_list_sidekick'        => '管理小幫手',
         'postback_remove_sidekick'      => '移除',
+        'postback_update_sidekick'      => '更新資訊',
     ],
 ];

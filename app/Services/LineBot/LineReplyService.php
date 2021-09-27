@@ -30,6 +30,7 @@ class LineReplyService
     const POSTBACK_REVIEW_SIDEKICK = 'review_sidekick';
     const POSTBACK_LIST_SIDEKICK   = 'list_sidekick';
     const POSTBACK_REMOVE_SIDEKICK = 'remove_sidekick';
+    const POSTBACK_UPDATE_SIDEKICK = 'update_sidekick';
 
     /**
      * 訊息回覆

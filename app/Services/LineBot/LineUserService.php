@@ -2,8 +2,10 @@
 
 namespace App\Services\LineBot;
 
+use App\Events\ThrowException;
 use App\Models\GroupAdmin;
 use App\Models\GroupConfig;
+use Exception;
 
 class LineUserService extends LineBaseService implements LineBaseInterface
 {
@@ -16,6 +18,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
     const OPTION_ADMIN_REVIEW_CANCEL   = 'review_sidekick_cancal';
     const OPTION_ADMIN_LIST_SIDEKICK   = 'list_sidekick';
     const OPTION_ADMIN_REMOVE_SIDEKICK = 'remove_sidekick';
+    const OPTION_ADMIN_UPDATE_SIDEKICK = 'update_sidekick';
 
     /**
      * 用戶
@@ -84,6 +87,10 @@ class LineUserService extends LineBaseService implements LineBaseInterface
 
                 case static::OPTION_ADMIN_REMOVE_SIDEKICK:
                     $this->removeSidekick();
+                    break;
+
+                case static::OPTION_ADMIN_UPDATE_SIDEKICK:
+                    $this->updateSidekick();
                     break;
 
                 default:
@@ -287,6 +294,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
                 'label'   => $sidekick->name,
                 'text'    => $group->name,
                 'actions' => [
+                    LineReplyService::POSTBACK_UPDATE_SIDEKICK => static::OPTION_ADMIN_UPDATE_SIDEKICK,
                     LineReplyService::POSTBACK_REMOVE_SIDEKICK => static::OPTION_ADMIN_REMOVE_SIDEKICK,
                 ],
                 'data'    => [
@@ -326,5 +334,57 @@ class LineUserService extends LineBaseService implements LineBaseInterface
             'replyMsg'   => trans('linebot.text.done'),
         ];
         $this->reply($options);
+    }
+
+    /**
+     * 更新小幫手資訊
+     *
+     * @return void
+     */
+    private function updateSidekick()
+    {
+        $data     = $this->params['data']; // POSTBACK 回來的資料
+        $sidekick = GroupAdmin::find($data['id']);
+
+        if ($sidekick == null) {
+            return;
+        }
+
+        // 驗證管理員身分
+        if (!$this->isAdmin($this->userId, $sidekick->group_id)) {
+            return;
+        }
+
+        try {
+            $profile = $this->getProfile($sidekick->user_id);
+            $userId  = $profile->userId ?? null;
+
+            if ($userId != $sidekick->user_id) {
+                $options = [
+                    'replyToken' => $this->event['replyToken'],
+                    'replyMsg'   => trans('linebot.text.blocked'),
+                ];
+                $this->reply($options);
+                return;
+            }
+
+            $sidekick->name        = $profile->displayName;
+            $sidekick->picture_url = $profile->pictureUrl;
+            $sidekick->save();
+
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => trans('linebot.text.done'),
+            ];
+            $this->reply($options);
+        } catch (Exception $e) {
+            $options = [
+                'replyToken' => $this->event['replyToken'],
+                'replyMsg'   => trans('linebot.text.update-fail'),
+                '--rand-msg' => true,
+            ];
+            $this->reply($options);
+            event(new ThrowException($e));
+        }
     }
 }
