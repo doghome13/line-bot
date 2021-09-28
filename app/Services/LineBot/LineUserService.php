@@ -142,13 +142,13 @@ class LineUserService extends LineBaseService implements LineBaseInterface
             ];
 
             if (!$admin->is_sidekick) {
-                $data['text']    = trans('linebot.text.admin-menu');
+                $data['text']    = trans('linebot.text.admin_menu');
                 $data['actions'] = [
                     LineReplyService::POSTBACK_REVIEW_SIDEKICK => static::OPTION_ADMIN_REVIEW_SIDEKICK,
                     LineReplyService::POSTBACK_LIST_SIDEKICK   => static::OPTION_ADMIN_LIST_SIDEKICK,
                 ];
             } else {
-                $data['text']    = trans('linebot.text.sidekick-menu');
+                $data['text']    = trans('linebot.text.sidekick_menu');
                 $data['actions'] = [
                     // 之後加功能
                 ];
@@ -395,7 +395,7 @@ class LineUserService extends LineBaseService implements LineBaseInterface
         } catch (Exception $e) {
             $options = [
                 'replyToken' => $this->event['replyToken'],
-                'replyMsg'   => trans('linebot.text.update-fail'),
+                'replyMsg'   => trans('linebot.text.update_fail'),
                 '--rand-msg' => true,
             ];
             $this->reply($options);

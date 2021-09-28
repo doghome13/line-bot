@@ -2,11 +2,11 @@
 
 return [
     'text'   => [
-        'admin-menu'    => '管理者的操作選單',
-        'sidekick-menu' => '小幫手的操作選單',
+        'admin_menu'    => '管理者的操作選單',
+        'sidekick_menu' => '小幫手的操作選單',
         'empty'         => '沒有資料',
         'done'          => '完成!',
-        'update-fail'   => '更新失敗',
+        'update_fail'   => '更新失敗',
         'blocked'       => '已被封鎖',
         'join_group'    => '朕來了',
         'update_group'  => '好的',
