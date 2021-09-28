@@ -8,6 +8,8 @@ return [
         'done'          => '完成!',
         'update-fail'   => '更新失敗',
         'blocked'       => '已被封鎖',
+        'join_group'    => '朕來了',
+        'update_group'  => '好的',
     ],
     'button' => [
         // 群組相關

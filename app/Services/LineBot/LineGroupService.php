@@ -150,13 +150,7 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
             switch ($this->trigger) {
                 case static::OPTION_ADMIN_UPDATE_GROUP:
                     // 更新群組資訊
-                    $options = [
-                        'groupId'    => $this->groupId,
-                        'replyToken' => $this->event['replyToken'],
-                        'msg'        => $this->eventType == LineBotService::EVENT_JOIN ? '朕來了' : '好的',
-                    ];
-
-                    $this->reply($options, 'line:group:info');
+                    $this->updateGroup();
                     break;
 
                 case static::OPTION_REGULAR_APPLY_ADMIN:
@@ -515,5 +509,54 @@ class LineGroupService extends LineBaseService implements LineBaseInterface
 
             event(new ThrowException($e));
         }
+    }
+
+    /**
+     * 更新群組
+     *
+     * @return void
+     */
+    private function updateGroup()
+    {
+        if ($this->eventType != LineBotService::EVENT_JOIN) {
+            $userId = $this->event['source']['userId'];
+            $admin  = $this->groupAdmin($this->groupId);
+
+            if ($admin == null || $admin->user_id != $userId) {
+                return;
+            }
+        }
+
+        // 更新群組資訊
+        $options = [
+            'groupId'    => $this->groupId,
+            'replyToken' => $this->event['replyToken'],
+            'msg'        => $this->eventType == LineBotService::EVENT_JOIN ? trans('linebot.text.join_group') : trans('linebot.text.update_group'),
+        ];
+
+        $this->reply($options, 'line:group:info');
+
+        // bot 帳號需官方認證才能用此 api
+        // // 拉群組成員 userId
+        // $url        = "https://api.line.me/v2/bot/group/{$this->groupId}/members/ids";
+        // $nextUserId = null;
+        // $userIds    = [];
+
+        // do {
+        //     $query = '';
+
+        //     if ($nextUserId != null) {
+        //         $query = ["start" => $nextUserId];
+        //         $query = json_encode($query);
+        //     }
+
+        //     $res        = LineReplyService::curl($url, $query, false, static::class, true);
+        //     set_log($res);
+        //     $userIds    = array_merge($userIds, $res->memberIds);
+        //     $nextUserId = $res->next ?? null;
+
+        // } while ($nextUserId != null);
+
+        // set_log($userIds);
     }
 }
